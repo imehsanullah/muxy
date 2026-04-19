@@ -28,6 +28,8 @@ The editor's syntax theme is chosen separately in **Settings → Appearance**. S
 
 Terminal colors come from the Ghostty config (`~/.config/ghostty/config`). When you change theme in Muxy, the matching light/dark variant of your Ghostty colors is applied automatically. To customise the palette directly, edit Ghostty's config — see [Ghostty's theme docs](https://ghostty.org/docs/config/reference#theme).
 
+Bundled Muxy themes are installed into `~/.config/ghostty/themes` when a theme is applied so Ghostty can resolve the same theme names from user config.
+
 ## Reload
 
 After editing Ghostty config, **Muxy → Reload Configuration** (`⌘⇧R`) re-reads it without restarting.

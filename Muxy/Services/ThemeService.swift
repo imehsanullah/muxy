@@ -1,6 +1,9 @@
 import AppKit
 import Foundation
 import MuxyShared
+import OSLog
+
+private let logger = Logger(subsystem: "app.muxy", category: "ThemeService")
 
 enum ThemeAppearance: Hashable {
     case light
@@ -40,6 +43,7 @@ final class ThemeService {
     static let shared = ThemeService()
     nonisolated static let defaultThemeName = "Muxy"
     nonisolated static let pinnedThemeNames: Set<String> = ["Muxy", "Muxy Light"]
+    nonisolated private static let userThemesDirectory = NSHomeDirectory() + "/.config/ghostty/themes"
 
     @ObservationIgnored private let config: MuxyConfig
     @ObservationIgnored private let ghostty: GhosttyService
@@ -152,6 +156,7 @@ final class ThemeService {
 
     func applyTheme(_ name: String) {
         let sanitized = sanitizedThemeName(name)
+        Self.installBundledThemesIfNeeded()
         config.updateConfigValue("theme", value: "\"\(sanitized)\"")
         cachedColors = nil
         ghostty.reloadConfig()
@@ -161,6 +166,7 @@ final class ThemeService {
     func applyTheme(dark darkName: String, light lightName: String) {
         let dark = sanitizedThemeName(darkName)
         let light = sanitizedThemeName(lightName)
+        Self.installBundledThemesIfNeeded()
         config.updateConfigValue("theme", value: "dark:\"\(dark)\",light:\"\(light)\"")
         cachedColors = nil
         ghostty.reloadConfig()
@@ -262,15 +268,55 @@ final class ThemeService {
         return nil
     }
 
+    nonisolated static func installBundledThemesIfNeeded() {
+        let sources = bundledThemeSources()
+        guard !sources.isEmpty else { return }
+
+        do {
+            try FileManager.default.createDirectory(
+                atPath: userThemesDirectory,
+                withIntermediateDirectories: true
+            )
+        } catch {
+            logger.error("Failed to create Ghostty theme directory at \(userThemesDirectory, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return
+        }
+
+        for source in sources {
+            let destination = userThemesDirectory + "/" + source.lastPathComponent
+            do {
+                if FileManager.default.fileExists(atPath: destination) {
+                    let sourceData = try Data(contentsOf: source)
+                    let destinationData = try Data(contentsOf: URL(fileURLWithPath: destination))
+                    if sourceData == destinationData {
+                        continue
+                    }
+                }
+
+                if FileManager.default.fileExists(atPath: destination) {
+                    try FileManager.default.removeItem(atPath: destination)
+                }
+                try FileManager.default.copyItem(at: source, to: URL(fileURLWithPath: destination))
+            } catch {
+                logger.error("Failed to install bundled theme \(source.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
     nonisolated private static func discoverThemes() -> [ThemePreview] {
         var themesByName: [String: ThemePreview] = [:]
+        let directories = themeDirectories()
 
-        for dir in themeDirectories() {
+        for dir in directories {
             guard let files = try? FileManager.default.contentsOfDirectory(atPath: dir) else { continue }
             for file in files {
                 guard let theme = parseThemeFile(atPath: dir + "/" + file, name: file) else { continue }
                 themesByName[theme.name] = theme
             }
+        }
+
+        if themesByName.isEmpty {
+            logger.error("No themes discovered in directories: \(directories.joined(separator: ", "), privacy: .public)")
         }
 
         return themesByName.values.sorted {
@@ -284,11 +330,63 @@ final class ThemeService {
 
     nonisolated private static func themeDirectories() -> [String] {
         var dirs: [String] = []
-        if let bundled = Bundle.appResources.resourceURL?.appendingPathComponent("ghostty/themes").path {
-            dirs.append(bundled)
+        if let resourcesDir = getenv("GHOSTTY_RESOURCES_DIR").map({ String(cString: $0) }) {
+            appendDirectory(resourcesDir + "/themes", into: &dirs)
         }
-        dirs.append(NSHomeDirectory() + "/.config/ghostty/themes")
+
+        let appBundlePaths = [
+            "/Applications/Ghostty.app/Contents/Resources/ghostty/themes",
+            NSHomeDirectory() + "/Applications/Ghostty.app/Contents/Resources/ghostty/themes",
+        ]
+        for path in appBundlePaths {
+            appendDirectory(path, into: &dirs)
+        }
+
+        appendDirectory(userThemesDirectory, into: &dirs)
+
+        if let bundleResources = Bundle.appResources.resourceURL {
+            appendDirectory(bundleResources.appendingPathComponent("ghostty/themes").path, into: &dirs)
+            appendDirectory(bundleResources.appendingPathComponent("themes").path, into: &dirs)
+            appendDirectory(bundleResources.path, into: &dirs)
+        }
+
         return dirs
+    }
+
+    nonisolated private static func bundledThemeSources() -> [URL] {
+        guard let bundleResources = Bundle.appResources.resourceURL else { return [] }
+        let candidates = [
+            bundleResources.appendingPathComponent("ghostty/themes", isDirectory: true),
+            bundleResources.appendingPathComponent("themes", isDirectory: true),
+            bundleResources,
+        ]
+
+        var seenPaths = Set<String>()
+        var sources: [URL] = []
+        for directory in candidates {
+            guard let files = try? FileManager.default.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: [.isRegularFileKey],
+                options: [.skipsHiddenFiles]
+            ) else { continue }
+
+            for file in files {
+                guard seenPaths.insert(file.path).inserted else { continue }
+                guard let values = try? file.resourceValues(forKeys: [.isRegularFileKey]),
+                      values.isRegularFile == true
+                else { continue }
+                guard parseThemeFile(atPath: file.path, name: file.lastPathComponent) != nil else { continue }
+                sources.append(file)
+            }
+        }
+        return sources.sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
+    }
+
+    nonisolated private static func appendDirectory(_ path: String, into directories: inout [String]) {
+        guard !directories.contains(path) else { return }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else { return }
+        directories.append(path)
     }
 
     nonisolated private static func parseThemeFile(atPath path: String, name: String) -> ThemePreview? {
