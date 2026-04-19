@@ -4,6 +4,7 @@ public struct ProjectDTO: Identifiable, Codable, Hashable, Sendable {
     public let id: UUID
     public var name: String
     public var path: String
+    public var remoteHost: String?
     public var sortOrder: Int
     public var createdAt: Date
     public var icon: String?
@@ -14,6 +15,7 @@ public struct ProjectDTO: Identifiable, Codable, Hashable, Sendable {
         id: UUID,
         name: String,
         path: String,
+        remoteHost: String? = nil,
         sortOrder: Int,
         createdAt: Date,
         icon: String? = nil,
@@ -23,6 +25,7 @@ public struct ProjectDTO: Identifiable, Codable, Hashable, Sendable {
         self.id = id
         self.name = name
         self.path = path
+        self.remoteHost = remoteHost
         self.sortOrder = sortOrder
         self.createdAt = createdAt
         self.icon = icon

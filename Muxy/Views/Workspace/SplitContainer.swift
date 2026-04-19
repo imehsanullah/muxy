@@ -5,6 +5,7 @@ struct SplitContainer: View {
     let branch: SplitBranch
     let focusedAreaID: UUID?
     let isActiveProject: Bool
+    let showQuickOpenButton: Bool
     let showVCSButton: Bool
     let projectID: UUID
     let onFocusArea: (UUID) -> Void
@@ -76,6 +77,7 @@ struct SplitContainer: View {
             node: node,
             focusedAreaID: focusedAreaID,
             isActiveProject: isActiveProject,
+            showQuickOpenButton: showQuickOpenButton,
             showVCSButton: showVCSButton,
             projectID: projectID,
             onFocusArea: onFocusArea,

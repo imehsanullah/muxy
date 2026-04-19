@@ -39,6 +39,7 @@ enum NotificationNavigator {
     static func navigate(
         to notification: MuxyNotification,
         appState: AppState,
+        projectStore: ProjectStore,
         notificationStore: NotificationStore
     ) {
         if appState.activeProjectID != notification.projectID
@@ -47,7 +48,8 @@ enum NotificationNavigator {
             appState.dispatch(.selectProject(
                 projectID: notification.projectID,
                 worktreeID: notification.worktreeID,
-                worktreePath: notification.worktreePath
+                worktreePath: notification.worktreePath,
+                remoteHost: projectStore.projects.first(where: { $0.id == notification.projectID })?.remoteHost
             ))
         }
 

@@ -58,7 +58,7 @@ Muxy/
     TextBackingStore.swift    Line-array backing store for editor documents
     ViewportState.swift       Viewport window computation and line mapping for editor documents
     TerminalSettings.swift    Terminal preference keys and quick-select label layout helpers
-    Project.swift             Project folder metadata
+    Project.swift             Local or SSH-backed project metadata
     Worktree.swift            Per-project worktree slot (primary or git worktree)
     WorktreeKey.swift         Hashable (projectID, worktreeID) key for workspace maps
     WorktreeConfig.swift      Decoder for .muxy/worktree.json setup commands
@@ -92,7 +92,7 @@ Muxy/
     MobileServerService.swift  Lifecycle wrapper around MuxyRemoteServer
     WorktreeStore.swift       @Observable store for per-project worktrees
     WorktreePersistence.swift JSON persistence for worktrees (one file per project)
-    ProjectOpenService.swift  Shared open-project flow used by commands and sidebar
+    ProjectOpenService.swift  Shared local/remote project creation flow used by commands and sidebar
     WorktreeSetupRunner.swift Dispatches .muxy/worktree.json setup commands to a new tab
     WorkspacePersistence.swift JSON persistence for workspaces
     JSONFilePersistence.swift Shared App Support directory helper
@@ -164,14 +164,17 @@ Muxy/
 Project → Worktree → SplitNode (splits/tab areas) → TerminalTab → Pane
 ```
 
-Each project has at least one **primary** worktree pointing at `Project.path`. Git
-projects may add more worktrees via `git worktree add`, each with their own split
+Each project has at least one **primary** worktree pointing at `Project.path`. Local
+Git projects may add more worktrees via `git worktree add`, each with their own split
 tree, tabs, focus state, and working directory. Secondary worktrees can be either
 Muxy-managed checkouts created from the sidebar or externally created Git worktrees
-that are imported into the sidebar with a manual refresh. Workspace state is keyed by
-`WorktreeKey(projectID, worktreeID)` in `AppState` so every per-project map is
-actually per-worktree. `AppState.activeWorktreeID[projectID]` tracks which
-worktree is currently visible for each project.
+that are imported into the sidebar with a manual refresh. Remote projects persist an
+SSH destination plus a remote path; their primary worktree still points at
+`Project.path`, but terminal panes launch through `ssh -t` instead of using the path
+as a local working directory. Workspace state is keyed by `WorktreeKey(projectID,
+worktreeID)` in `AppState` so every per-project map is actually per-worktree.
+`AppState.activeWorktreeID[projectID]` tracks which worktree is currently visible for
+each project.
 
 ## Data Flow
 
@@ -192,6 +195,15 @@ User action → AppState.dispatch() → WorkspaceReducer.reduce()
   `TextBackingStore` and render through `CodeEditorRepresentable`; terminal editor tabs create a normal
   terminal pane with the configured Ghostty startup command. The size thresholds in
   `EditorTabState` apply only to the built-in editor path.
+- **Remote Projects**: `ProjectOpenService` can add either a local project chosen from `NSOpenPanel`
+  or a remote project backed by SSH host + remote path fields. Remote projects persist the SSH
+  destination in `projects.json`, create normal workspace snapshots, and restore terminal panes by
+  regenerating the SSH startup command from the stored host/path metadata. Quick Open works for
+  remote projects by running the same filename search over SSH and opening the selected file through
+  the configured terminal editor command on the remote shell. Source Control also works for remote
+  projects by routing git and gh commands through SSH from the same VCS state model used for local
+  repos, while Git worktree management stays gated off for remote projects instead of trying to
+  manipulate the local filesystem with a remote path.
 - **GhosttyKit**: C module wrapping `ghostty.h`. Precompiled xcframework from `muxy-app/ghostty` fork. Surfaces created/destroyed via `TerminalViewRegistry`.
 - **Persistence**: All files in `~/Library/Application Support/Muxy/`. Shared directory helper: `MuxyFileStorage`. Worktrees are persisted per-project at `worktrees/{projectID}.json`, including whether a secondary worktree is Muxy-managed or externally discovered. Git projects can manually refresh this list from `git worktree list --porcelain` to import existing worktrees without deleting absent entries; paths are matched after symlink resolution so a repo opened via a symlinked path still collapses onto a single primary entry. Externally discovered worktrees are never touched by Muxy's `cleanupOnDisk` paths (project removal, post-merge cleanup, manual removal) — they can only be unregistered by the user in the underlying repo. Worktree setup commands live in-repo at `{Project.path}/.muxy/worktree.json`.
 - **Ghostty Config**: Managed by `MuxyConfig`, stored at `~/Library/Application Support/Muxy/ghostty.conf`. Seeded from `~/.config/ghostty/config` on first run.

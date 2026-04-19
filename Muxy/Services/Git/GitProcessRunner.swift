@@ -55,6 +55,22 @@ enum GitProcessRunner {
         }
     }
 
+    static func runRemoteGit(
+        sshDestination: String,
+        repoPath: String,
+        arguments: [String],
+        lineLimit: Int? = nil
+    ) async throws -> GitProcessResult {
+        let remoteCommand = "cd -- \(ShellCommandEscaping.escape(repoPath)) && git " +
+            arguments.map(ShellCommandEscaping.escape).joined(separator: " ")
+        return try await runRemoteShell(
+            sshDestination: sshDestination,
+            command: remoteCommand,
+            lineLimit: lineLimit,
+            signpostName: "remote-git"
+        )
+    }
+
     static func runCommand(
         executable: String,
         arguments: [String],
@@ -83,6 +99,48 @@ enum GitProcessRunner {
                     continuation.resume(throwing: error)
                 }
             }
+        }
+    }
+
+    static func runRemoteCommand(
+        sshDestination: String,
+        executable: String,
+        arguments: [String],
+        workingDirectory: String,
+        lineLimit: Int? = nil
+    ) async throws -> GitProcessResult {
+        let remoteCommand = "cd -- \(ShellCommandEscaping.escape(workingDirectory)) && " +
+            ([executable] + arguments).map(ShellCommandEscaping.escape).joined(separator: " ")
+        return try await runRemoteShell(
+            sshDestination: sshDestination,
+            command: remoteCommand,
+            lineLimit: lineLimit,
+            signpostName: "remote-command"
+        )
+    }
+
+    static func runRemoteShell(
+        sshDestination: String,
+        command: String,
+        lineLimit: Int? = nil,
+        signpostName: StaticString = "remote-shell"
+    ) async throws -> GitProcessResult {
+        try await dispatch {
+            try runProcessSync(
+                executable: "/usr/bin/env",
+                arguments: [
+                    "ssh",
+                    "-o",
+                    "BatchMode=yes",
+                    "-o",
+                    "ConnectTimeout=10",
+                    sshDestination,
+                    command,
+                ],
+                workingDirectory: nil,
+                lineLimit: lineLimit,
+                signpostName: signpostName
+            )
         }
     }
 

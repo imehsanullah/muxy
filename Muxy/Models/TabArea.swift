@@ -5,21 +5,24 @@ import Foundation
 final class TabArea: Identifiable {
     let id: UUID
     let projectPath: String
+    let remoteHost: String?
     var tabs: [TerminalTab] = []
     var activeTabID: UUID?
     private var tabHistory: [UUID] = []
 
-    init(projectPath: String) {
+    init(projectPath: String, remoteHost: String? = nil) {
         id = UUID()
         self.projectPath = projectPath
-        let tab = TerminalTab(pane: TerminalPaneState(projectPath: projectPath))
+        self.remoteHost = remoteHost
+        let tab = TerminalTab(pane: TerminalPaneState(projectPath: projectPath, remoteHost: remoteHost))
         tabs.append(tab)
         activeTabID = tab.id
     }
 
-    init(projectPath: String, existingTab tab: TerminalTab) {
+    init(projectPath: String, remoteHost: String? = nil, existingTab tab: TerminalTab) {
         id = UUID()
         self.projectPath = projectPath
+        self.remoteHost = remoteHost
         tabs.append(tab)
         activeTabID = tab.id
     }
@@ -27,7 +30,8 @@ final class TabArea: Identifiable {
     init(restoring snapshot: TabAreaSnapshot) {
         id = snapshot.id
         projectPath = snapshot.projectPath
-        tabs = snapshot.tabs.map { TerminalTab(restoring: $0) }
+        remoteHost = snapshot.remoteHost
+        tabs = snapshot.tabs.map { TerminalTab(restoring: $0, remoteHost: snapshot.remoteHost) }
         if let index = snapshot.activeTabIndex, index >= 0, index < tabs.count {
             activeTabID = tabs[index].id
         } else {
@@ -40,6 +44,7 @@ final class TabArea: Identifiable {
         return TabAreaSnapshot(
             id: id,
             projectPath: projectPath,
+            remoteHost: remoteHost,
             tabs: tabs.map { $0.snapshot() },
             activeTabIndex: activeIndex
         )
@@ -55,11 +60,11 @@ final class TabArea: Identifiable {
     }
 
     func createTab() {
-        insertTab(TerminalTab(pane: TerminalPaneState(projectPath: projectPath)))
+        insertTab(TerminalTab(pane: TerminalPaneState(projectPath: projectPath, remoteHost: remoteHost)))
     }
 
     func createVCSTab() {
-        insertTab(TerminalTab(vcsState: VCSTabState(projectPath: projectPath)))
+        insertTab(TerminalTab(vcsState: VCSTabState(projectPath: projectPath, remoteHost: remoteHost)))
     }
 
     func createEditorTab(filePath: String) {
@@ -78,6 +83,7 @@ final class TabArea: Identifiable {
         let title = "\(Self.commandTitle(command)) \(URL(fileURLWithPath: filePath).lastPathComponent)"
         let pane = TerminalPaneState(
             projectPath: projectPath,
+            remoteHost: remoteHost,
             title: title,
             startupCommand: Self.editorLaunchCommand(command: command, filePath: filePath),
             externalEditorFilePath: filePath
@@ -89,21 +95,13 @@ final class TabArea: Identifiable {
         if command.contains("{file}") {
             return command.replacingOccurrences(of: "{file}", with: filePath)
         }
-        return command + " " + shellEscapedPath(filePath)
+        return command + " " + ShellCommandEscaping.escape(filePath)
     }
 
     private static func commandTitle(_ command: String) -> String {
         let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let first = trimmed.split(separator: " ").first else { return "Editor" }
         return String(first)
-    }
-
-    private static func shellEscapedPath(_ path: String) -> String {
-        let needsQuoting = path.contains { character in
-            character.isWhitespace || "'\"\\&|;$`!()[]{}<>*?".contains(character)
-        }
-        guard needsQuoting else { return path }
-        return "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
     private func insertTab(_ tab: TerminalTab) {
@@ -118,7 +116,7 @@ final class TabArea: Identifiable {
 
     func createTabAdjacent(to tabID: UUID, side: InsertSide) {
         guard let index = tabs.firstIndex(where: { $0.id == tabID }) else { return }
-        let tab = TerminalTab(pane: TerminalPaneState(projectPath: projectPath))
+        let tab = TerminalTab(pane: TerminalPaneState(projectPath: projectPath, remoteHost: remoteHost))
         let desiredIndex = side == .left ? index : index + 1
         let insertIndex = max(desiredIndex, firstUnpinnedIndex)
         tabs.insert(tab, at: insertIndex)

@@ -121,8 +121,8 @@ struct TerminalBridge: NSViewRepresentable {
         let registry = TerminalViewRegistry.shared
         let view = registry.view(
             for: state.id,
-            workingDirectory: state.projectPath,
-            command: state.startupCommand
+            workingDirectory: state.workingDirectory,
+            command: state.resolvedStartupCommand
         )
         if view.envVars.isEmpty, let key = worktreeKey {
             view.envVars = Self.buildEnvVars(paneID: state.id, worktreeKey: key)

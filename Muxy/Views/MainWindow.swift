@@ -154,6 +154,7 @@ struct MainWindow: View {
             if showQuickOpen, let project = activeProject {
                 QuickOpenOverlay(
                     projectPath: activeWorktreePath(for: project),
+                    remoteHost: project.remoteHost,
                     onSelect: { filePath in
                         showQuickOpen = false
                         appState.openFile(filePath, projectID: project.id)
@@ -172,7 +173,11 @@ struct MainWindow: View {
                         showWorktreeSwitcher = false
                         guard let project = projectStore.projects.first(where: { $0.id == item.projectID }) else { return }
                         if appState.activeProjectID == item.projectID {
-                            appState.selectWorktree(projectID: item.projectID, worktree: item.worktree)
+                            appState.selectWorktree(
+                                projectID: item.projectID,
+                                remoteHost: project.remoteHost,
+                                worktree: item.worktree
+                            )
                         } else {
                             appState.selectProject(project, worktree: item.worktree)
                         }
@@ -254,6 +259,7 @@ struct MainWindow: View {
                 activeTabID: area.activeTabID,
                 isFocused: true,
                 isWindowTitleBar: true,
+                showQuickOpenButton: true,
                 showVCSButton: true,
                 showDevelopmentBadge: AppEnvironment.isDevelopment,
                 projectID: project.id,
@@ -457,7 +463,10 @@ struct MainWindow: View {
     private func ensureVCSState(for project: Project) {
         guard let key = appState.activeWorktreeKey(for: project.id) else { return }
         guard vcsStates[key] == nil else { return }
-        vcsStates[key] = VCSTabState(projectPath: activeWorktreePath(for: project))
+        vcsStates[key] = VCSTabState(
+            projectPath: activeWorktreePath(for: project),
+            remoteHost: project.remoteHost
+        )
     }
 
     private func activeWorktreePath(for project: Project) -> String {

@@ -366,10 +366,7 @@ struct VCSTabView: View {
                 worktree: worktree,
                 repoPath: repoPath
             )
-            try? await GitRepositoryService().deleteRemoteBranch(
-                repoPath: repoPath,
-                branch: mergedBranch
-            )
+            await state.deleteRemoteBranch(mergedBranch)
         }
     }
 

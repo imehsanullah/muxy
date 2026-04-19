@@ -16,6 +16,7 @@ struct PaneTabStrip: View {
     let activeTabID: UUID?
     let isFocused: Bool
     var isWindowTitleBar: Bool = false
+    var showQuickOpenButton = true
     var showVCSButton = true
     var showDevelopmentBadge = false
     let projectID: UUID
@@ -107,10 +108,12 @@ struct PaneTabStrip: View {
                     }
                     .padding(.trailing, 4)
                 }
-                IconButton(symbol: "magnifyingglass", size: 12, accessibilityLabel: "Quick Open") {
-                    NotificationCenter.default.post(name: .quickOpen, object: nil)
+                if showQuickOpenButton {
+                    IconButton(symbol: "magnifyingglass", size: 12, accessibilityLabel: "Quick Open") {
+                        NotificationCenter.default.post(name: .quickOpen, object: nil)
+                    }
+                    .help(shortcutTooltip("Quick Open", for: .quickOpen))
                 }
-                .help(shortcutTooltip("Quick Open", for: .quickOpen))
                 IconButton(symbol: "square.split.2x1", accessibilityLabel: "Split Right") { onSplit(.horizontal) }
                     .help(shortcutTooltip("Split Right", for: .splitRight))
                 IconButton(symbol: "square.split.1x2", accessibilityLabel: "Split Down") { onSplit(.vertical) }

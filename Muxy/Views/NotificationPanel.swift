@@ -21,6 +21,7 @@ struct NotificationPanelItem: Identifiable {
 
 struct NotificationPanel: View {
     @Environment(AppState.self) private var appState
+    @Environment(ProjectStore.self) private var projectStore
     let onDismiss: () -> Void
 
     private var items: [NotificationPanelItem] {
@@ -133,6 +134,7 @@ struct NotificationPanel: View {
         NotificationNavigator.navigate(
             to: notification,
             appState: appState,
+            projectStore: projectStore,
             notificationStore: store
         )
         onDismiss()

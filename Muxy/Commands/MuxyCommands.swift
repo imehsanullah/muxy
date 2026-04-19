@@ -19,6 +19,10 @@ struct MuxyCommands: Commands {
         return projectStore.projects.first { $0.id == projectID }
     }
 
+    private var activeProjectIsRemote: Bool {
+        activeProject?.isRemote == true
+    }
+
     private var shortcutDispatcher: ShortcutActionDispatcher {
         ShortcutActionDispatcher(
             appState: appState,
@@ -92,6 +96,14 @@ struct MuxyCommands: Commands {
             }
             .shortcut(for: .openProject, store: keyBindings)
 
+            Button("Open Remote Project...") {
+                ProjectOpenService.openRemoteProject(
+                    appState: appState,
+                    projectStore: projectStore,
+                    worktreeStore: worktreeStore
+                )
+            }
+
             Button("New Tab") {
                 guard isMainWindowFocused else { return }
                 performShortcutAction(.newTab)
@@ -103,12 +115,14 @@ struct MuxyCommands: Commands {
                 performShortcutAction(.openVCSTab)
             }
             .shortcut(for: .openVCSTab, store: keyBindings)
+            .disabled(activeProject == nil)
 
             Button("Quick Open") {
                 guard isMainWindowFocused else { return }
                 performShortcutAction(.quickOpen)
             }
             .shortcut(for: .quickOpen, store: keyBindings)
+            .disabled(activeProject == nil)
 
             Button("Save") {
                 guard isMainWindowFocused else { return }
@@ -226,6 +240,7 @@ struct MuxyCommands: Commands {
                 performShortcutAction(.switchWorktree)
             }
             .shortcut(for: .switchWorktree, store: keyBindings)
+            .disabled(activeProject == nil || activeProjectIsRemote)
 
             Divider()
 

@@ -63,7 +63,7 @@ struct VCSWindowView: View {
         let worktreePath = worktreeStore
             .worktree(projectID: project.id, worktreeID: key.worktreeID)?
             .path ?? project.path
-        let state = VCSTabState(projectPath: worktreePath)
+        let state = VCSTabState(projectPath: worktreePath, remoteHost: project.remoteHost)
         vcsStates[key] = state
         activeState = state
     }

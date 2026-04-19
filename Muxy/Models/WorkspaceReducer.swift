@@ -20,29 +20,32 @@ enum WorkspaceReducer {
     private struct WorktreeReplacement {
         let id: UUID
         let path: String
+        let remoteHost: String?
     }
 
     static func reduce(action: AppState.Action, state: inout WorkspaceState) -> WorkspaceSideEffects {
         var effects = WorkspaceSideEffects()
 
         switch action {
-        case let .selectProject(projectID, worktreeID, worktreePath):
+        case let .selectProject(projectID, worktreeID, worktreePath, remoteHost):
             state.activeProjectID = projectID
             state.activeWorktreeID[projectID] = worktreeID
             ensureWorkspaceExists(
                 projectID: projectID,
                 worktreeID: worktreeID,
                 worktreePath: worktreePath,
+                remoteHost: remoteHost,
                 state: &state
             )
 
-        case let .selectWorktree(projectID, worktreeID, worktreePath):
+        case let .selectWorktree(projectID, worktreeID, worktreePath, remoteHost):
             state.activeProjectID = projectID
             state.activeWorktreeID[projectID] = worktreeID
             ensureWorkspaceExists(
                 projectID: projectID,
                 worktreeID: worktreeID,
                 worktreePath: worktreePath,
+                remoteHost: remoteHost,
                 state: &state
             )
 
@@ -53,7 +56,7 @@ enum WorkspaceReducer {
             let replacement: WorktreeReplacement? = if let replacementWorktreeID,
                                                        let replacementWorktreePath
             {
-                WorktreeReplacement(id: replacementWorktreeID, path: replacementWorktreePath)
+                WorktreeReplacement(id: replacementWorktreeID, path: replacementWorktreePath, remoteHost: nil)
             } else {
                 nil
             }
@@ -364,6 +367,7 @@ enum WorkspaceReducer {
             projectID: project.id,
             worktreeID: worktree.id,
             worktreePath: worktree.path,
+            remoteHost: project.remoteHost,
             state: &state
         )
     }
@@ -508,6 +512,7 @@ enum WorkspaceReducer {
                 projectID: projectID,
                 worktreeID: replacement.id,
                 worktreePath: replacement.path,
+                remoteHost: replacement.remoteHost,
                 state: &state
             )
             return
@@ -533,11 +538,12 @@ enum WorkspaceReducer {
         projectID: UUID,
         worktreeID: UUID,
         worktreePath: String,
+        remoteHost: String?,
         state: inout WorkspaceState
     ) {
         let key = WorktreeKey(projectID: projectID, worktreeID: worktreeID)
         guard state.workspaceRoots[key] == nil else { return }
-        let area = TabArea(projectPath: worktreePath)
+        let area = TabArea(projectPath: worktreePath, remoteHost: remoteHost)
         state.workspaceRoots[key] = .tabArea(area)
         state.focusedAreaID[key] = area.id
     }

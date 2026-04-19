@@ -53,7 +53,7 @@ extension SplitNode {
     ) -> (node: SplitNode, newAreaID: UUID?) {
         switch self {
         case let .tabArea(area) where area.id == areaID:
-            let newArea = TabArea(projectPath: area.projectPath)
+            let newArea = TabArea(projectPath: area.projectPath, remoteHost: area.remoteHost)
             let first: SplitNode = position == .first ? .tabArea(newArea) : .tabArea(area)
             let second: SplitNode = position == .first ? .tabArea(area) : .tabArea(newArea)
             let node = SplitNode.split(SplitBranch(
@@ -90,7 +90,7 @@ extension SplitNode {
     ) -> (node: SplitNode, newAreaID: UUID?) {
         switch self {
         case let .tabArea(area) where area.id == areaID:
-            let newArea = TabArea(projectPath: area.projectPath, existingTab: tab)
+            let newArea = TabArea(projectPath: area.projectPath, remoteHost: area.remoteHost, existingTab: tab)
             let first: SplitNode = position == .first ? .tabArea(newArea) : .tabArea(area)
             let second: SplitNode = position == .first ? .tabArea(area) : .tabArea(newArea)
             let node = SplitNode.split(SplitBranch(direction: direction, first: first, second: second))
