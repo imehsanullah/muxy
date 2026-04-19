@@ -30,6 +30,10 @@ Terminal colors come from the Ghostty config (`~/.config/ghostty/config`). When 
 
 Bundled Muxy themes are installed into `~/.config/ghostty/themes` when a theme is applied so Ghostty can resolve the same theme names from user config.
 
+## Backgrounds
+
+Appearance settings can place a single image or image folder behind the entire app window. Muxy renders the shared background once at the window layer and makes terminal surfaces translucent by writing Ghostty background opacity settings into the managed config.
+
 ## Reload
 
 After editing Ghostty config, **Muxy → Reload Configuration** (`⌘⇧R`) re-reads it without restarting.

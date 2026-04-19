@@ -14,6 +14,7 @@ struct MuxyApp: App {
 
     init() {
         _ = MuxyApp.launchDate
+        _ = AppBackgroundService.shared
         let environment = AppEnvironment.live
         let projectStore = ProjectStore(persistence: environment.projectPersistence)
         let worktreeStore = WorktreeStore(
@@ -49,6 +50,7 @@ struct MuxyApp: App {
                 .environment(GhosttyService.shared)
                 .environment(MuxyConfig.shared)
                 .environment(ThemeService.shared)
+                .environment(AppBackgroundService.shared)
                 .preferredColorScheme(MuxyTheme.colorScheme)
                 .onAppear {
                     NotificationStore.shared.appState = appState
@@ -123,6 +125,7 @@ struct MuxyApp: App {
                 .environment(projectStore)
                 .environment(worktreeStore)
                 .environment(GhosttyService.shared)
+                .environment(AppBackgroundService.shared)
                 .preferredColorScheme(MuxyTheme.colorScheme)
         }
         .defaultSize(width: 700, height: 600)
@@ -135,6 +138,8 @@ struct MuxyApp: App {
 
         Settings {
             SettingsView()
+                .environment(GhosttyService.shared)
+                .environment(AppBackgroundService.shared)
                 .preferredColorScheme(MuxyTheme.colorScheme)
         }
     }
@@ -225,6 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate()
         setAppIcon()
+        _ = AppBackgroundService.shared
         _ = GhosttyService.shared
         GhosttyService.shared.applyInitialColorScheme()
         ThemeService.shared.applyDefaultThemeIfNeeded()
@@ -384,6 +390,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct WindowConfigurator: NSViewRepresentable {
     let configVersion: Int
     let uiScalePreset: UIScale.Preset
+    let backgroundVersion: Int
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -417,9 +424,10 @@ struct WindowConfigurator: NSViewRepresentable {
 
     private static func applyWindowBackground(_ window: NSWindow) {
         window.isOpaque = false
-        window.backgroundColor = .clear
+        let backgroundVisible = AppBackgroundService.shared.hasVisibleBackground
+        window.backgroundColor = backgroundVisible ? .clear : MuxyTheme.nsBg
         window.contentView?.wantsLayer = true
-        window.contentView?.layer?.backgroundColor = MuxyTheme.nsBg.cgColor
+        window.contentView?.layer?.backgroundColor = (backgroundVisible ? NSColor.clear : MuxyTheme.nsBg).cgColor
     }
 
     static func neutralizeSafeAreaInsets(in window: NSWindow) {

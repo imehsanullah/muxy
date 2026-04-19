@@ -6,6 +6,7 @@ struct MainWindow: View {
     @Environment(ProjectStore.self) private var projectStore
     @Environment(WorktreeStore.self) private var worktreeStore
     @Environment(GhosttyService.self) private var ghostty
+    @Environment(AppBackgroundService.self) private var backgroundService
     @Environment(\.openWindow) private var openWindow
     @State private var dragCoordinator = TabDragCoordinator()
     private enum AttachedVCSLayout {
@@ -88,6 +89,10 @@ struct MainWindow: View {
     @AppStorage("muxy.notifications.toastPosition") private var toastPositionRaw = ToastPosition.topCenter.rawValue
     @MainActor private var trafficLightWidth: CGFloat { UIMetrics.scaled(75) }
 
+    private var rootChromeBackground: some ShapeStyle {
+        backgroundService.hasVisibleBackground ? AnyShapeStyle(Color.clear) : AnyShapeStyle(MuxyTheme.bg)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -106,10 +111,10 @@ struct MainWindow: View {
             }
             .frame(height: UIMetrics.scaled(32))
             .background(WindowDragRepresentable())
-            .background(MuxyTheme.bg)
+            .background(rootChromeBackground)
 
             Rectangle().fill(MuxyTheme.border).frame(height: 1)
-                .background(MuxyTheme.bg)
+                .background(rootChromeBackground)
 
             HStack(spacing: 0) {
                 HStack(spacing: 0) {
@@ -120,12 +125,14 @@ struct MainWindow: View {
                     }
                 }
                 .fixedSize(horizontal: true, vertical: false)
-                .background(MuxyTheme.bg)
+                .background(rootChromeBackground)
 
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
                         ZStack {
-                            MuxyTheme.bg
+                            if !backgroundService.hasVisibleBackground {
+                                MuxyTheme.bg
+                            }
                             if let project = activeProject,
                                appState.workspaceRoot(for: project.id) == nil,
                                let worktree = resolvedActiveWorktree(for: project)
@@ -264,7 +271,12 @@ struct MainWindow: View {
             onMouseBack: { appState.goBack() },
             onMouseForward: { appState.goForward() }
         ))
-        .background(WindowConfigurator(configVersion: ghostty.configVersion, uiScalePreset: UIScale.shared.preset))
+        .background(AppBackgroundView())
+        .background(WindowConfigurator(
+            configVersion: ghostty.configVersion,
+            uiScalePreset: UIScale.shared.preset,
+            backgroundVersion: backgroundService.version
+        ))
         .background(WindowTitleUpdater(title: windowTitle))
         .ignoresSafeArea(.container, edges: .top)
         .onReceive(NotificationCenter.default.publisher(for: .quickOpen)) { _ in

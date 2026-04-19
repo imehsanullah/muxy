@@ -170,6 +170,11 @@ final class GhosttyTerminalNSView: NSView {
         surface = nil
     }
 
+    func recreateSurface() {
+        destroySurface()
+        createSurface()
+    }
+
     func tearDown() {
         setHandCursor(false)
         onOpenURL = nil

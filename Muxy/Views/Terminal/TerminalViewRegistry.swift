@@ -50,6 +50,12 @@ final class TerminalViewRegistry {
         views[paneID]
     }
 
+    func recreateAllSurfaces() {
+        for view in views.values {
+            view.recreateSurface()
+        }
+    }
+
     func paneID(for view: GhosttyTerminalNSView) -> UUID? {
         paneIDs[ObjectIdentifier(view)]
     }

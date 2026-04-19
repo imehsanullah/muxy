@@ -21,6 +21,7 @@ struct SettingsView: View {
                 .tabItem { Label("AI Usage", systemImage: "chart.bar") }
         }
         .frame(minWidth: 720, minHeight: 560)
+        .background(MuxyTheme.bg)
         .background(SettingsWindowConfigurator(minSize: NSSize(width: 720, height: 560)))
         .resetsSettingsFocusOnOutsideClick()
     }

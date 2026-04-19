@@ -118,8 +118,8 @@ final class GhosttyService {
         )
     }
 
-    func reloadConfig() {
-        refreshConfig(postThemeChangeNotification: false)
+    func reloadConfig(recreateSurfaces: Bool = false) {
+        refreshConfig(postThemeChangeNotification: false, recreateSurfaces: recreateSurfaces)
     }
 
     func appearanceDidChange() {
@@ -131,7 +131,7 @@ final class GhosttyService {
         refreshConfig(postThemeChangeNotification: true)
     }
 
-    private func refreshConfig(postThemeChangeNotification: Bool) {
+    private func refreshConfig(postThemeChangeNotification: Bool, recreateSurfaces: Bool = false) {
         guard let app, let newConfig = loadMuxyGhosttyConfig() else { return }
         ghostty_app_update_config(app, newConfig)
         let oldConfig = config
@@ -140,6 +140,9 @@ final class GhosttyService {
         configVersion += 1
         if postThemeChangeNotification {
             NotificationCenter.default.post(name: .themeDidChange, object: nil)
+        }
+        if recreateSurfaces {
+            TerminalViewRegistry.shared.recreateAllSurfaces()
         }
     }
 
