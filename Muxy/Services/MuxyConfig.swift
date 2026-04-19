@@ -30,16 +30,20 @@ final class MuxyConfig {
     }
 
     func updateConfigValue(_ key: String, value: String) {
-        let entry = "\(key) = \(value)"
         var content = readGhosttyConfig()
         var lines = content.components(separatedBy: "\n")
+        applyConfigValue(value, for: key, in: &lines)
 
-        if let index = findConfigLineIndex(for: key, in: lines) {
-            lines[index] = entry
-        } else {
-            lines.insert(entry, at: 0)
+        content = lines.joined(separator: "\n")
+        try? writeGhosttyConfig(content)
+    }
+
+    func updateConfigValues(_ updates: [String: String?]) {
+        var content = readGhosttyConfig()
+        var lines = content.components(separatedBy: "\n")
+        for (key, value) in updates {
+            applyConfigValue(value, for: key, in: &lines)
         }
-
         content = lines.joined(separator: "\n")
         try? writeGhosttyConfig(content)
     }
@@ -61,6 +65,32 @@ final class MuxyConfig {
             return i
         }
         return nil
+    }
+
+    private func applyConfigValue(_ value: String?, for key: String, in lines: inout [String]) {
+        let matchingIndices = lines.indices.filter { index in
+            let trimmed = lines[index].trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix(key) else { return false }
+            let afterKey = trimmed.dropFirst(key.count).trimmingCharacters(in: .whitespaces)
+            return afterKey.hasPrefix("=")
+        }
+
+        if let value {
+            let entry = "\(key) = \(value)"
+            if let firstIndex = matchingIndices.first {
+                lines[firstIndex] = entry
+                for index in matchingIndices.dropFirst().reversed() {
+                    lines.remove(at: index)
+                }
+                return
+            }
+            lines.insert(entry, at: 0)
+            return
+        }
+
+        for index in matchingIndices.reversed() {
+            lines.remove(at: index)
+        }
     }
 
     private func seedFromSystemGhosttyIfNeeded() {

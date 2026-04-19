@@ -108,7 +108,7 @@ final class GhosttyService {
         )
     }
 
-    func reloadConfig() {
+    func reloadConfig(recreateSurfaces: Bool = false) {
         guard let app else { return }
         guard let newConfig = loadMuxyGhosttyConfig() else { return }
         ghostty_app_update_config(app, newConfig)
@@ -116,6 +116,9 @@ final class GhosttyService {
         self.config = newConfig
         if let oldConfig { ghostty_config_free(oldConfig) }
         configVersion += 1
+        if recreateSurfaces {
+            TerminalViewRegistry.shared.recreateAllSurfaces()
+        }
     }
 
     private func loadMuxyGhosttyConfig() -> ghostty_config_t? {

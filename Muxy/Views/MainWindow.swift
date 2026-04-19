@@ -6,6 +6,7 @@ struct MainWindow: View {
     @Environment(ProjectStore.self) private var projectStore
     @Environment(WorktreeStore.self) private var worktreeStore
     @Environment(GhosttyService.self) private var ghostty
+    @Environment(AppBackgroundService.self) private var backgroundService
     @Environment(\.openWindow) private var openWindow
     @State private var dragCoordinator = TabDragCoordinator()
     private enum AttachedVCSLayout {
@@ -52,6 +53,10 @@ struct MainWindow: View {
     @AppStorage("muxy.notifications.toastPosition") private var toastPositionRaw = ToastPosition.topCenter.rawValue
     private let trafficLightWidth: CGFloat = 75
 
+    private var rootChromeBackground: some ShapeStyle {
+        backgroundService.hasVisibleBackground ? AnyShapeStyle(Color.clear) : AnyShapeStyle(MuxyTheme.bg)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -67,10 +72,10 @@ struct MainWindow: View {
             }
             .frame(height: 32)
             .background(WindowDragRepresentable())
-            .background(MuxyTheme.bg)
+            .background(rootChromeBackground)
 
             Rectangle().fill(MuxyTheme.border).frame(height: 1)
-                .background(MuxyTheme.bg)
+                .background(rootChromeBackground)
 
             HStack(spacing: 0) {
                 HStack(spacing: 0) {
@@ -78,10 +83,12 @@ struct MainWindow: View {
                     Rectangle().fill(MuxyTheme.border).frame(width: 1)
                         .accessibilityHidden(true)
                 }
-                .background(MuxyTheme.bg)
+                .background(rootChromeBackground)
 
                 ZStack {
-                    MuxyTheme.bg
+                    if !backgroundService.hasVisibleBackground {
+                        MuxyTheme.bg
+                    }
                     if projectsWithWorkspaces.isEmpty {
                         WelcomeView()
                     } else if let project = activeProjectWithWorkspace,
@@ -195,7 +202,11 @@ struct MainWindow: View {
         .background(MainWindowShortcutInterceptor { action in
             handleShortcutAction(action)
         })
-        .background(WindowConfigurator(configVersion: ghostty.configVersion))
+        .background(AppBackgroundView())
+        .background(WindowConfigurator(
+            configVersion: ghostty.configVersion,
+            backgroundVersion: backgroundService.version
+        ))
         .background(WindowTitleUpdater(title: windowTitle))
         .ignoresSafeArea(.container, edges: .top)
         .onReceive(NotificationCenter.default.publisher(for: .quickOpen)) { _ in

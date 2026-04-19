@@ -81,6 +81,7 @@ Muxy/
       GitModels.swift             GitStatusFile, DiffDisplayRow, NumstatEntry
     GitDirectoryWatcher.swift FSEvents watcher for .git changes
     FileSearchService.swift   Quick open file search via /usr/bin/find subprocess
+    AppBackgroundService.swift App-wide background image settings, slideshow state, and terminal translucency sync
     ThemeService.swift        Theme discovery + application; syncs bundled Muxy themes into Ghostty's user theme directory
     MuxyConfig.swift          Ghostty config file read/write
     KeyBindingStore.swift     @Observable store for keyboard shortcuts
@@ -122,6 +123,7 @@ Muxy/
       UUIDFramePreferenceKey.swift  Generic PreferenceKey for frame tracking
       NotificationBadge.swift Unread count badge for sidebar project icons
       QuickOpenOverlay.swift  Cmd+P file search overlay (name substring match via find)
+      AppBackgroundView.swift Shared background image renderer for the main app and VCS scenes
     Terminal/
       GhosttyTerminalNSView.swift       AppKit view wrapping ghostty_surface_t + NSTextInputClient
       TerminalPane.swift      SwiftUI wrapper for terminal, search, and quick-select overlays
@@ -148,7 +150,7 @@ Muxy/
     Settings/
       SettingsView.swift      Settings window layout
       SettingsComponents.swift  Shared section/row primitives used across all tabs
-      AppearanceSettingsView.swift  Theme settings tab
+      AppearanceSettingsView.swift  Theme and background image settings tab
       EditorSettingsView.swift  Editor preferences tab (default editor, font)
       TerminalSettingsView.swift  Terminal preferences tab, including quick-select label layout
       KeyboardShortcutsSettingsView.swift  Shortcut config tab

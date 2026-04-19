@@ -15,5 +15,6 @@ struct SettingsView: View {
                 .tabItem { Label("Mobile", systemImage: "iphone") }
         }
         .frame(width: 500, height: 500)
+        .background(MuxyTheme.bg)
     }
 }

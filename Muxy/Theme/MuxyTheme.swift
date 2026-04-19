@@ -30,17 +30,23 @@ enum MuxyTheme {
 
     @MainActor static var colorScheme: ColorScheme { snapshot.colorScheme }
 
-    @MainActor private static var cachedVersion: Int = -1
+    @MainActor private static var cachedThemeVersion: Int = -1
+    @MainActor private static var cachedBackgroundVersion: Int = -1
     @MainActor private static var cachedSnapshot: Snapshot?
 
     @MainActor private static var snapshot: Snapshot {
-        let version = GhosttyService.shared.configVersion
-        if let cached = cachedSnapshot, cachedVersion == version {
+        let themeVersion = GhosttyService.shared.configVersion
+        let backgroundVersion = AppBackgroundService.shared.version
+        if let cached = cachedSnapshot,
+           cachedThemeVersion == themeVersion,
+           cachedBackgroundVersion == backgroundVersion
+        {
             return cached
         }
         let newSnapshot = Snapshot(from: GhosttyService.shared)
         cachedSnapshot = newSnapshot
-        cachedVersion = version
+        cachedThemeVersion = themeVersion
+        cachedBackgroundVersion = backgroundVersion
         return newSnapshot
     }
 }
@@ -76,15 +82,20 @@ extension MuxyTheme {
             let bgColor = service.backgroundColor
             let fgColor = service.foregroundColor
             let accentColor = service.accentColor
+            let backgroundService = AppBackgroundService.shared
+            let tintOpacity = backgroundService.hasVisibleBackground ? backgroundService.chromeTintOpacity : 1
+            let surfaceOpacity = backgroundService.hasVisibleBackground ? 0.14 : 0.08
+            let borderOpacity = backgroundService.hasVisibleBackground ? 0.18 : 0.12
+            let hoverOpacity = backgroundService.hasVisibleBackground ? 0.1 : 0.06
 
-            nsBg = bgColor
-            bg = Color(nsColor: bgColor)
+            nsBg = bgColor.withAlphaComponent(tintOpacity)
+            bg = Color(nsColor: nsBg)
             fg = Color(nsColor: fgColor)
             fgMuted = Color(nsColor: fgColor.withAlphaComponent(0.65))
             fgDim = Color(nsColor: fgColor.withAlphaComponent(0.4))
-            surface = Color(nsColor: fgColor.withAlphaComponent(0.08))
-            border = Color(nsColor: fgColor.withAlphaComponent(0.12))
-            hover = Color(nsColor: fgColor.withAlphaComponent(0.06))
+            surface = Color(nsColor: fgColor.withAlphaComponent(surfaceOpacity))
+            border = Color(nsColor: fgColor.withAlphaComponent(borderOpacity))
+            hover = Color(nsColor: fgColor.withAlphaComponent(hoverOpacity))
             accent = Color(nsColor: accentColor)
             accentSoft = Color(nsColor: accentColor.withAlphaComponent(0.1))
 

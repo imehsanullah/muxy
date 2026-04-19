@@ -145,6 +145,11 @@ final class GhosttyTerminalNSView: NSView {
         surface = nil
     }
 
+    func recreateSurface() {
+        destroySurface()
+        createSurface()
+    }
+
     func tearDown() {
         onTitleChange = nil
         onFocus = nil

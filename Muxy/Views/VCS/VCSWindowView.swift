@@ -4,6 +4,7 @@ struct VCSWindowView: View {
     @Environment(AppState.self) private var appState
     @Environment(ProjectStore.self) private var projectStore
     @Environment(WorktreeStore.self) private var worktreeStore
+    @Environment(AppBackgroundService.self) private var backgroundService
     @State private var vcsStates: [WorktreeKey: VCSTabState] = [:]
     @State private var activeState: VCSTabState?
 
@@ -13,6 +14,7 @@ struct VCSWindowView: View {
     }
 
     var body: some View {
+        let _ = backgroundService.version
         Group {
             if let state = activeState {
                 VCSTabView(state: state, focused: true, onFocus: {})
@@ -24,6 +26,7 @@ struct VCSWindowView: View {
             }
         }
         .frame(minWidth: 500, minHeight: 400)
+        .background(AppBackgroundView())
         .preferredColorScheme(MuxyTheme.colorScheme)
         .onAppear {
             synchronizeState()
