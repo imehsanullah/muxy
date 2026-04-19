@@ -131,7 +131,11 @@ struct MainWindow: View {
                                let worktree = resolvedActiveWorktree(for: project)
                             {
                                 EmptyProjectPlaceholder(project: project) {
-                                    appState.selectWorktree(projectID: project.id, worktree: worktree)
+                                    appState.selectWorktree(
+                                        projectID: project.id,
+                                        remoteHost: project.remoteHost,
+                                        worktree: worktree
+                                    )
                                 }
                             } else if projectsWithWorkspaces.isEmpty {
                                 WelcomeView()
@@ -199,6 +203,7 @@ struct MainWindow: View {
             if showQuickOpen, let project = activeProject {
                 QuickOpenOverlay(
                     projectPath: activeWorktreePath(for: project),
+                    remoteHost: project.remoteHost,
                     onSelect: { filePath in
                         showQuickOpen = false
                         appState.openFile(filePath, projectID: project.id)
@@ -354,6 +359,7 @@ struct MainWindow: View {
                 activeTabID: area.activeTabID,
                 isFocused: true,
                 isWindowTitleBar: true,
+                showQuickOpenButton: true,
                 showVCSButton: true,
                 showDevelopmentBadge: AppEnvironment.isDevelopment,
                 openInIDEProjectPath: activeWorktreePath(for: project),
@@ -555,7 +561,7 @@ struct MainWindow: View {
                   let worktree = worktreeStore.list(for: wt.projectID).first(where: { $0.id == wt.worktreeID })
             else { return }
             if appState.activeProjectID == wt.projectID {
-                appState.selectWorktree(projectID: wt.projectID, worktree: worktree)
+                appState.selectWorktree(projectID: wt.projectID, remoteHost: target.remoteHost, worktree: worktree)
             } else {
                 appState.selectProject(target, worktree: worktree)
             }
@@ -567,7 +573,7 @@ struct MainWindow: View {
                let project = projectStore.projects.first(where: { $0.id == br.projectID })
             {
                 if appState.activeProjectID == br.projectID {
-                    appState.selectWorktree(projectID: br.projectID, worktree: worktree)
+                    appState.selectWorktree(projectID: br.projectID, remoteHost: project.remoteHost, worktree: worktree)
                 } else {
                     appState.selectProject(project, worktree: worktree)
                 }
@@ -1042,7 +1048,7 @@ struct MainWindow: View {
         guard let project = activeProject,
               appState.activeWorktreeKey(for: project.id) != nil
         else { return nil }
-        return VCSStateStore.shared.state(for: activeWorktreePath(for: project))
+        return VCSStateStore.shared.state(for: activeWorktreePath(for: project), remoteHost: project.remoteHost)
     }
 
     private func activeWorktreePath(for project: Project) -> String {

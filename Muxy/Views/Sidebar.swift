@@ -79,7 +79,7 @@ struct Sidebar: View {
 
     private var addButton: some View {
         AddProjectButton(expanded: isWide) {
-            ProjectOpenService.openProject(
+            ProjectOpenService.addProject(
                 appState: appState,
                 projectStore: projectStore,
                 worktreeStore: worktreeStore
@@ -176,8 +176,10 @@ struct Sidebar: View {
     private func remove(_ project: Project) {
         let capturedProject = project
         let knownWorktrees = worktreeStore.list(for: project.id)
-        Task.detached {
-            await WorktreeStore.cleanupOnDisk(for: capturedProject, knownWorktrees: knownWorktrees)
+        if !project.isRemote {
+            Task.detached {
+                await WorktreeStore.cleanupOnDisk(for: capturedProject, knownWorktrees: knownWorktrees)
+            }
         }
         appState.removeProject(project.id)
         projectStore.remove(id: project.id)

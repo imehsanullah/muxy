@@ -91,6 +91,10 @@ final class WorktreeStore {
     }
 
     func refreshFromGit(project: Project) async throws -> [Worktree] {
+        if project.isRemote {
+            ensurePrimary(for: project)
+            return worktrees[project.id] ?? [makePrimary(for: project)]
+        }
         ensurePrimary(for: project)
         let records = try await listGitWorktrees(project.path).filter { !$0.isBare && !$0.isPrunable }
         var list = worktrees[project.id] ?? []
@@ -188,6 +192,9 @@ final class WorktreeStore {
     }
 
     static func cleanupOnDisk(for project: Project, knownWorktrees: [Worktree]) async {
+        if project.isRemote {
+            return
+        }
         let secondaryWorktrees = knownWorktrees.filter(\.canBeRemoved)
         for worktree in secondaryWorktrees {
             await cleanupOnDisk(worktree: worktree, repoPath: project.path)

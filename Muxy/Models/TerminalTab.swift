@@ -95,7 +95,7 @@ final class TerminalTab: Identifiable {
         content = .diffViewer(diffViewerState)
     }
 
-    init(restoring snapshot: TerminalTabSnapshot) {
+    init(restoring snapshot: TerminalTabSnapshot, remoteHost: String?) {
         customTitle = snapshot.customTitle
         colorID = snapshot.colorID
         isPinned = snapshot.isPinned
@@ -103,11 +103,14 @@ final class TerminalTab: Identifiable {
         case .terminal:
             content = .terminal(TerminalPaneState(
                 projectPath: snapshot.projectPath,
+                remoteHost: remoteHost,
                 title: snapshot.paneTitle,
-                initialWorkingDirectory: snapshot.currentWorkingDirectory
+                initialWorkingDirectory: snapshot.currentWorkingDirectory,
+                startupCommand: snapshot.startupCommand,
+                externalEditorFilePath: snapshot.filePath
             ))
         case .vcs:
-            content = .vcs(VCSStateStore.shared.state(for: snapshot.projectPath))
+            content = .vcs(VCSStateStore.shared.state(for: snapshot.projectPath, remoteHost: remoteHost))
         case .editor:
             if let filePath = snapshot.filePath {
                 content = .editor(EditorTabState(projectPath: snapshot.projectPath, filePath: filePath))
@@ -127,8 +130,9 @@ final class TerminalTab: Identifiable {
             isPinned: isPinned,
             projectPath: content.projectPath,
             paneTitle: content.pane?.title,
-            filePath: content.editorState?.filePath,
-            currentWorkingDirectory: content.pane?.currentWorkingDirectory
+            filePath: content.editorState?.filePath ?? content.pane?.externalEditorFilePath,
+            currentWorkingDirectory: content.pane?.currentWorkingDirectory,
+            startupCommand: content.pane?.startupCommand
         )
     }
 }

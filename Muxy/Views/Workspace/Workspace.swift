@@ -29,6 +29,7 @@ struct TerminalArea: View {
                 focusedAreaID: focusedAreaID,
                 isActiveProject: isActiveProject,
                 showTabStrip: !rootIsTabArea,
+                showQuickOpenButton: true,
                 showVCSButton: false,
                 projectID: project.id,
                 shortcutOffsets: appState.shortcutOffsets(for: project.id),

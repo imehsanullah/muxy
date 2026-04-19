@@ -5,6 +5,7 @@ struct SplitContainer: View {
     let branch: SplitBranch
     let focusedAreaID: UUID?
     let isActiveProject: Bool
+    let showQuickOpenButton: Bool
     let showVCSButton: Bool
     let projectID: UUID
     let shortcutOffsets: [UUID: Int]
@@ -77,6 +78,7 @@ struct SplitContainer: View {
             node: node,
             focusedAreaID: focusedAreaID,
             isActiveProject: isActiveProject,
+            showQuickOpenButton: showQuickOpenButton,
             showVCSButton: showVCSButton,
             projectID: projectID,
             shortcutOffsets: shortcutOffsets,

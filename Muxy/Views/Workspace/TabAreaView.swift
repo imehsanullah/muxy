@@ -5,6 +5,7 @@ struct TabAreaView: View {
     let isFocused: Bool
     let isActiveProject: Bool
     let showTabStrip: Bool
+    let showQuickOpenButton: Bool
     let showVCSButton: Bool
     let projectID: UUID
     let shortcutIndexOffset: Int
@@ -37,6 +38,7 @@ struct TabAreaView: View {
                     tabs: PaneTabStrip.snapshots(from: area.tabs),
                     activeTabID: area.activeTabID,
                     isFocused: isFocused,
+                    showQuickOpenButton: showQuickOpenButton,
                     showVCSButton: showVCSButton,
                     projectID: projectID,
                     shortcutIndexOffset: shortcutIndexOffset,

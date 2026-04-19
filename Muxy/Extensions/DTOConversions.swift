@@ -7,6 +7,7 @@ extension Project {
             id: id,
             name: name,
             path: path,
+            remoteHost: remoteHost,
             sortOrder: sortOrder,
             createdAt: createdAt,
             icon: icon,

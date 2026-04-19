@@ -5,12 +5,14 @@ enum ProjectLifecycleReducer {
     struct WorktreeReplacement {
         let id: UUID
         let path: String
+        let remoteHost: String?
     }
 
     static func selectProject(
         projectID: UUID,
         worktreeID: UUID,
         worktreePath: String,
+        remoteHost: String?,
         state: inout WorkspaceState,
         effects: inout WorkspaceSideEffects
     ) {
@@ -20,6 +22,7 @@ enum ProjectLifecycleReducer {
             projectID: projectID,
             worktreeID: worktreeID,
             worktreePath: worktreePath,
+            remoteHost: remoteHost,
             state: &state,
             effects: &effects
         )
@@ -69,6 +72,7 @@ enum ProjectLifecycleReducer {
                 projectID: projectID,
                 worktreeID: replacement.id,
                 worktreePath: replacement.path,
+                remoteHost: replacement.remoteHost,
                 state: &state,
                 effects: &effects
             )
@@ -116,6 +120,7 @@ enum ProjectLifecycleReducer {
             projectID: project.id,
             worktreeID: worktree.id,
             worktreePath: worktree.path,
+            remoteHost: project.remoteHost,
             state: &state,
             effects: &effects
         )

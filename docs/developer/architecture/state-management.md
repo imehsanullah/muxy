@@ -19,7 +19,7 @@ flowchart TB
 
 ```mermaid
 classDiagram
-  class Project { id; name; path; icon; color }
+  class Project { id; name; path; remoteHost; icon; color }
   class Worktree { id; name; path; branch; isPrimary }
   class SplitNode { horizontal | vertical | tabArea }
   class TabArea { id; tabs[]; activeTabID }
@@ -30,13 +30,13 @@ classDiagram
   TabArea "1" --> "*" TerminalTab
 ```
 
-A workspace tree is keyed by `WorktreeKey(projectID, worktreeID)`. `AppState.activeWorktreeID[projectID]` tracks the visible worktree per project.
+A workspace tree is keyed by `WorktreeKey(projectID, worktreeID)`. `AppState.activeWorktreeID[projectID]` tracks the visible worktree per project. Remote projects use the same primary worktree model, but `Project.remoteHost` is threaded into `TabArea`, `TerminalPaneState`, and `VCSTabState` so terminal, Quick Open, and source-control operations run through SSH while the stored path remains the remote repository path.
 
 ## Persistence
 
 | File | Contents |
 | --- | --- |
-| `~/Library/Application Support/Muxy/projects.json` | Project list, including optional preferred worktree parent. |
+| `~/Library/Application Support/Muxy/projects.json` | Project list, including optional SSH host and preferred worktree parent. |
 | `~/Library/Application Support/Muxy/worktrees/{projectID}.json` | Per-project worktrees (managed vs externally discovered). |
 | `~/Library/Application Support/Muxy/workspaces.json` | Tab/split snapshots, terminal cwds, custom titles + colors. |
 | `~/Library/Application Support/Muxy/keybindings.json` | Remapped keyboard shortcuts. |

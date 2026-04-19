@@ -126,8 +126,10 @@ final class RemoteServerDelegate: MuxyRemoteServerDelegate {
     }
 
     func selectWorktree(projectID: UUID, worktreeID: UUID) {
-        guard let worktree = worktreeStore.worktree(projectID: projectID, worktreeID: worktreeID) else { return }
-        appState.selectWorktree(projectID: projectID, worktree: worktree)
+        guard let project = projectStore.projects.first(where: { $0.id == projectID }),
+              let worktree = worktreeStore.worktree(projectID: projectID, worktreeID: worktreeID)
+        else { return }
+        appState.selectWorktree(projectID: projectID, remoteHost: project.remoteHost, worktree: worktree)
     }
 
     func getWorkspace(projectID: UUID) -> WorkspaceDTO? {

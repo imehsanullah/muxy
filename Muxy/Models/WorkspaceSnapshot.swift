@@ -93,6 +93,7 @@ enum SplitDirectionSnapshot: String, Codable {
 struct TabAreaSnapshot: Codable {
     let id: UUID
     let projectPath: String
+    let remoteHost: String?
     let tabs: [TerminalTabSnapshot]
     let activeTabIndex: Int?
 }
@@ -106,6 +107,7 @@ struct TerminalTabSnapshot: Codable {
     let paneTitle: String
     let filePath: String?
     let currentWorkingDirectory: String?
+    let startupCommand: String?
 
     init(
         kind: TerminalTab.Kind,
@@ -115,7 +117,8 @@ struct TerminalTabSnapshot: Codable {
         projectPath: String,
         paneTitle: String?,
         filePath: String? = nil,
-        currentWorkingDirectory: String? = nil
+        currentWorkingDirectory: String? = nil,
+        startupCommand: String? = nil
     ) {
         self.kind = kind
         self.customTitle = customTitle
@@ -125,6 +128,7 @@ struct TerminalTabSnapshot: Codable {
         self.paneTitle = paneTitle ?? "Terminal"
         self.filePath = filePath
         self.currentWorkingDirectory = currentWorkingDirectory
+        self.startupCommand = startupCommand
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -136,6 +140,7 @@ struct TerminalTabSnapshot: Codable {
         case paneTitle
         case filePath
         case currentWorkingDirectory
+        case startupCommand
     }
 
     init(from decoder: Decoder) throws {
@@ -148,6 +153,7 @@ struct TerminalTabSnapshot: Codable {
         paneTitle = try container.decodeIfPresent(String.self, forKey: .paneTitle) ?? "Terminal"
         filePath = try container.decodeIfPresent(String.self, forKey: .filePath)
         currentWorkingDirectory = try container.decodeIfPresent(String.self, forKey: .currentWorkingDirectory)
+        startupCommand = try container.decodeIfPresent(String.self, forKey: .startupCommand)
     }
 }
 

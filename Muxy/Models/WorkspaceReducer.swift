@@ -28,12 +28,13 @@ enum WorkspaceReducer {
         var effects = WorkspaceSideEffects()
 
         switch action {
-        case let .selectProject(projectID, worktreeID, worktreePath),
-             let .selectWorktree(projectID, worktreeID, worktreePath):
+        case let .selectProject(projectID, worktreeID, worktreePath, remoteHost),
+             let .selectWorktree(projectID, worktreeID, worktreePath, remoteHost):
             ProjectLifecycleReducer.selectProject(
                 projectID: projectID,
                 worktreeID: worktreeID,
                 worktreePath: worktreePath,
+                remoteHost: remoteHost,
                 state: &state,
                 effects: &effects
             )
@@ -46,7 +47,8 @@ enum WorkspaceReducer {
                 if let replacementWorktreeID, let replacementWorktreePath {
                     ProjectLifecycleReducer.WorktreeReplacement(
                         id: replacementWorktreeID,
-                        path: replacementWorktreePath
+                        path: replacementWorktreePath,
+                        remoteHost: nil
                     )
                 } else {
                     nil

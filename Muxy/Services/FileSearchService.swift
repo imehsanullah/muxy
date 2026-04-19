@@ -20,13 +20,14 @@ enum FileSearchService {
         "vendor", "coverage", ".cache", ".parcel-cache",
     ]
 
-    static func search(query: String, in projectPath: String) async -> [FileSearchResult] {
+    static func search(query: String, in projectPath: String, remoteHost: String? = nil) async -> [FileSearchResult] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
 
         if trimmed.isEmpty {
             let candidates = await runFind(
                 arguments: initialArguments(projectPath: projectPath),
                 projectPath: projectPath,
+                remoteHost: remoteHost,
                 limit: initialCandidateLimit
             )
             return rankInitialCandidates(candidates)
@@ -35,6 +36,7 @@ enum FileSearchService {
         let candidates = await runFind(
             arguments: queryArguments(query: trimmed, projectPath: projectPath),
             projectPath: projectPath,
+            remoteHost: remoteHost,
             limit: candidatePoolLimit
         )
         return rankCandidates(candidates, query: trimmed)
@@ -43,12 +45,26 @@ enum FileSearchService {
     private static func runFind(
         arguments: [String],
         projectPath: String,
+        remoteHost: String?,
         limit: Int
     ) async -> [FileSearchResult] {
         await withCheckedContinuation { continuation in
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/find")
-            process.arguments = arguments
+            if let remoteHost {
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+                process.arguments = [
+                    "ssh",
+                    "-o",
+                    "BatchMode=yes",
+                    "-o",
+                    "ConnectTimeout=10",
+                    remoteHost,
+                    makeRemoteFindCommand(arguments: arguments),
+                ]
+            } else {
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/find")
+                process.arguments = arguments
+            }
 
             let stdoutPipe = Pipe()
             let stderrPipe = Pipe()
@@ -83,6 +99,10 @@ enum FileSearchService {
                 continuation.resume(returning: [])
             }
         }
+    }
+
+    private static func makeRemoteFindCommand(arguments: [String]) -> String {
+        "find " + arguments.map(ShellCommandEscaping.escape).joined(separator: " ")
     }
 
     private static func initialArguments(projectPath: String) -> [String] {

@@ -40,6 +40,8 @@ sequenceDiagram
 
 When a user runs `cd` inside a terminal, libghostty emits `GHOSTTY_ACTION_PWD`. `GhosttyRuntimeEventAdapter` forwards that to `TerminalPane`, which updates `TerminalPaneState.currentWorkingDirectory`. The cwd is persisted via `TerminalTabSnapshot`, so reopening the workspace lands each pane in its last-used directory.
 
+Remote project panes keep Ghostty's local working directory at the user's home directory and launch an SSH command generated from the stored host and remote path. Local panes use the persisted cwd when available.
+
 ## Environment variables
 
 Each surface receives:

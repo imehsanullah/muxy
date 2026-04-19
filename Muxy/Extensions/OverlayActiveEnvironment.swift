@@ -1,5 +1,12 @@
 import SwiftUI
 
+private struct OverlayActiveEnvironmentKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
-    @Entry var overlayActive: Bool = false
+    var overlayActive: Bool {
+        get { self[OverlayActiveEnvironmentKey.self] }
+        set { self[OverlayActiveEnvironmentKey.self] = newValue }
+    }
 }

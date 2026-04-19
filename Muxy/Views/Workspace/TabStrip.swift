@@ -18,6 +18,7 @@ struct PaneTabStrip: View {
     let activeTabID: UUID?
     let isFocused: Bool
     var isWindowTitleBar: Bool = false
+    var showQuickOpenButton = true
     var showVCSButton = true
     var showDevelopmentBadge = false
     var openInIDEProjectPath: String?

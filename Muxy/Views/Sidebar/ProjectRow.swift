@@ -39,7 +39,7 @@ struct ProjectRow: View {
 
     var body: some View {
         projectIcon
-            .help(project.name)
+            .help(project.locationLabel)
             .contentShape(RoundedRectangle(cornerRadius: UIMetrics.radiusLG))
             .accessibilityElement(children: .combine)
             .accessibilityLabel(project.name)
@@ -58,7 +58,11 @@ struct ProjectRow: View {
                 onSelect()
             }
             .task(id: project.path) {
-                isGitRepo = await GitWorktreeService.shared.isGitRepository(project.path)
+                if project.isRemote {
+                    isGitRepo = false
+                } else {
+                    isGitRepo = await GitWorktreeService.shared.isGitRepository(project.path)
+                }
             }
             .contextMenu {
                 Button("Set Logo...") { pickLogoImage() }
@@ -71,7 +75,7 @@ struct ProjectRow: View {
                 }
                 Divider()
                 Button("Rename Project") { startRename() }
-                if isGitRepo {
+                if isGitRepo && !project.isRemote {
                     Divider()
                     Button("Refresh Worktrees") { Task { await refreshWorktrees() } }
                     Button("New Worktree…") { showCreateWorktreeSheet = true }
@@ -173,6 +177,16 @@ struct ProjectRow: View {
                     .fill(MuxyTheme.accent)
                     .frame(width: UIMetrics.scaled(8), height: UIMetrics.scaled(8))
                     .offset(x: UIMetrics.spacing1, y: -UIMetrics.spacing1)
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if project.isRemote {
+                Image(systemName: "network")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(MuxyTheme.accent)
+                    .padding(3)
+                    .background(MuxyTheme.bg, in: Circle())
+                    .offset(x: 4, y: 4)
             }
         }
         .overlay {

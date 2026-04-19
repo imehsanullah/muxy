@@ -140,8 +140,8 @@ struct TerminalBridge: NSViewRepresentable {
         let registry = TerminalViewRegistry.shared
         let view = registry.view(
             for: state.id,
-            workingDirectory: state.currentWorkingDirectory ?? state.projectPath,
-            command: state.startupCommand,
+            workingDirectory: state.remoteHost == nil ? (state.currentWorkingDirectory ?? state.workingDirectory) : state.workingDirectory,
+            command: state.resolvedStartupCommand,
             commandInteractive: state.startupCommandInteractive
         )
         if view.envVars.isEmpty, let key = worktreeKey {

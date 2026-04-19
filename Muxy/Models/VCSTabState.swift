@@ -56,6 +56,7 @@ final class VCSTabState {
     }
 
     let projectPath: String
+    let remoteHost: String?
     var files: [GitStatusFile] = []
     var mode: ViewMode = .unified
     var fileListMode: FileListMode = .flat {
@@ -175,7 +176,7 @@ final class VCSTabState {
         return true
     }
 
-    @ObservationIgnored private let git = GitRepositoryService()
+    @ObservationIgnored private let git: GitRepositoryService
     @ObservationIgnored private var loadFilesTask: Task<Void, Never>?
     @ObservationIgnored private var branchTask: Task<Void, Never>?
     @ObservationIgnored private var prInfoTask: Task<Void, Never>?
@@ -194,8 +195,11 @@ final class VCSTabState {
     private(set) var hasCompletedInitialLoad = false
     @ObservationIgnored private static let commitsPerPage = 100
 
-    init(projectPath: String) {
+    init(projectPath: String, remoteHost: String? = nil) {
         self.projectPath = projectPath
+        let trimmedRemoteHost = remoteHost?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.remoteHost = trimmedRemoteHost?.isEmpty == true ? nil : trimmedRemoteHost
+        git = GitRepositoryService(sshDestination: self.remoteHost)
         pullRequestAutoSyncMinutes = VCSPersistedSettings.loadAutoSyncMinutes(repoPath: projectPath)
         let visibility = VCSPersistedSettings.loadSectionVisibility(repoPath: projectPath)
         changesVisible = visibility.changes
@@ -232,6 +236,7 @@ final class VCSTabState {
     }
 
     private func startWatching() {
+        guard remoteHost == nil else { return }
         watcher = FileSystemWatcher(directoryPath: projectPath) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.watcherDidFire()
@@ -1146,6 +1151,14 @@ final class VCSTabState {
         }
     }
 
+    func deleteRemoteBranch(_ name: String) async {
+        do {
+            try await git.deleteRemoteBranch(repoPath: projectPath, branch: name)
+        } catch {
+            showStatus(errorText(error), isError: true)
+        }
+    }
+
     func switchBranchAndRefresh(_ name: String) async {
         do {
             try await git.switchBranch(repoPath: projectPath, branch: name)
@@ -1159,7 +1172,7 @@ final class VCSTabState {
 
     func deleteLocalBranch(_ name: String) async {
         do {
-            try await GitWorktreeService.shared.deleteBranch(repoPath: projectPath, branch: name)
+            try await git.deleteBranch(repoPath: projectPath, branch: name)
             loadBranches()
             showStatus("Deleted branch \(name)", isError: false)
         } catch {

@@ -44,6 +44,16 @@ struct ExpandedProjectRow: View {
         worktrees.first { $0.id == activeWorktreeID }
     }
 
+    private var subtitleText: String? {
+        if project.isRemote {
+            return project.sshDestination
+        }
+        if isGitRepo, let worktree = activeWorktree {
+            return worktree.isPrimary ? "primary" : worktree.name
+        }
+        return nil
+    }
+
     private var displayLetter: String {
         String(project.name.prefix(1)).uppercased()
     }
@@ -56,7 +66,11 @@ struct ExpandedProjectRow: View {
             }
         }
         .task(id: project.path) {
-            isGitRepo = await GitWorktreeService.shared.isGitRepository(project.path)
+            if project.isRemote {
+                isGitRepo = false
+            } else {
+                isGitRepo = await GitWorktreeService.shared.isGitRepository(project.path)
+            }
             if autoExpandWorktrees, isActive, isGitRepo {
                 worktreesExpanded = true
             }
@@ -78,7 +92,7 @@ struct ExpandedProjectRow: View {
             }
             Divider()
             Button("Rename Project") { startRename() }
-            if isGitRepo {
+            if isGitRepo && !project.isRemote {
                 Divider()
                 Button("Refresh Worktrees") { Task { await refreshWorktrees() } }
                 Button("New Worktree…") { showCreateWorktreeSheet = true }
@@ -132,10 +146,10 @@ struct ExpandedProjectRow: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
 
-                if isGitRepo, let worktree = activeWorktree {
-                    Text(worktree.isPrimary ? "primary" : worktree.name)
+                if let subtitleText {
+                    Text(subtitleText)
                         .font(.system(size: UIMetrics.fontFootnote, design: .monospaced))
-                        .foregroundStyle(MuxyTheme.fg)
+                        .foregroundStyle(MuxyTheme.fgDim)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
@@ -163,7 +177,7 @@ struct ExpandedProjectRow: View {
         }
         .onTapGesture {
             guard !isAnyDragging else { return }
-            if isActive, isGitRepo {
+            if isActive, isGitRepo, !project.isRemote {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     worktreesExpanded.toggle()
                 }
@@ -230,6 +244,16 @@ struct ExpandedProjectRow: View {
                     .offset(x: UIMetrics.spacing1, y: -UIMetrics.spacing1)
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            if project.isRemote {
+                Image(systemName: "network")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(MuxyTheme.accent)
+                    .padding(2)
+                    .background(MuxyTheme.bg, in: Circle())
+                    .offset(x: 3, y: 3)
+            }
+        }
     }
 
     private var worktreeList: some View {
@@ -266,7 +290,9 @@ struct ExpandedProjectRow: View {
 
     private var projectHeaderAccessibilityLabel: String {
         var label = project.name
-        if isGitRepo, let worktree = activeWorktree {
+        if let sshDestination = project.sshDestination {
+            label += ", remote: \(sshDestination)"
+        } else if isGitRepo, let worktree = activeWorktree {
             label += ", worktree: \(worktree.isPrimary ? "primary" : worktree.name)"
         }
         return label

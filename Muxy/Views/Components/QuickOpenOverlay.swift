@@ -2,6 +2,7 @@ import SwiftUI
 
 struct QuickOpenOverlay: View {
     let projectPath: String
+    let remoteHost: String?
     let onSelect: (String) -> Void
     let onDismiss: () -> Void
 
@@ -11,7 +12,7 @@ struct QuickOpenOverlay: View {
             emptyLabel: "No files found",
             noMatchLabel: "No matching files",
             search: { query in
-                await FileSearchService.search(query: query, in: projectPath)
+                await FileSearchService.search(query: query, in: projectPath, remoteHost: remoteHost)
             },
             onSelect: { result in onSelect(result.absolutePath) },
             onDismiss: onDismiss,

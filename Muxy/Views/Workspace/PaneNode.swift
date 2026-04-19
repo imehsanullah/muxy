@@ -5,6 +5,7 @@ struct PaneNode: View {
     let focusedAreaID: UUID?
     let isActiveProject: Bool
     var showTabStrip = true
+    var showQuickOpenButton = true
     var showVCSButton = true
     let projectID: UUID
     let shortcutOffsets: [UUID: Int]
@@ -26,6 +27,7 @@ struct PaneNode: View {
                 isFocused: focusedAreaID == area.id,
                 isActiveProject: isActiveProject,
                 showTabStrip: showTabStrip,
+                showQuickOpenButton: showQuickOpenButton,
                 showVCSButton: showVCSButton,
                 projectID: projectID,
                 shortcutIndexOffset: shortcutOffsets[area.id] ?? 0,
@@ -43,6 +45,7 @@ struct PaneNode: View {
                 branch: branch,
                 focusedAreaID: focusedAreaID,
                 isActiveProject: isActiveProject,
+                showQuickOpenButton: showQuickOpenButton,
                 showVCSButton: showVCSButton,
                 projectID: projectID,
                 shortcutOffsets: shortcutOffsets,

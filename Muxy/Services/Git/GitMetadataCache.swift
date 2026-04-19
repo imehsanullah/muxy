@@ -17,7 +17,7 @@ final class GitMetadataCache: @unchecked Sendable {
     private let lock = NSLock()
     private var prInfo: [PRKey: PREntry] = [:]
     private var defaultBranch: [String: String?] = [:]
-    private var ghInstalled: Bool?
+    private var ghInstalled: [String: Bool] = [:]
     private var remoteWebURL: [String: URL?] = [:]
     private var verifiedGitRepo: Set<String> = []
 
@@ -71,16 +71,16 @@ final class GitMetadataCache: @unchecked Sendable {
         defaultBranch[repoPath] = branch
     }
 
-    func cachedGhInstalled() -> Bool? {
+    func cachedGhInstalled(repoPath: String) -> Bool? {
         lock.lock()
         defer { lock.unlock() }
-        return ghInstalled
+        return ghInstalled[repoPath]
     }
 
-    func storeGhInstalled(_ installed: Bool) {
+    func storeGhInstalled(_ installed: Bool, repoPath: String) {
         lock.lock()
         defer { lock.unlock() }
-        ghInstalled = installed
+        ghInstalled[repoPath] = installed
     }
 
     func cachedRemoteWebURL(repoPath: String) -> URL?? {

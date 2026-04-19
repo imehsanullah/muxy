@@ -52,6 +52,6 @@ struct VCSWindowView: View {
         let worktreePath = worktreeStore
             .worktree(projectID: project.id, worktreeID: key.worktreeID)?
             .path ?? project.path
-        activeState = VCSStateStore.shared.state(for: worktreePath)
+        activeState = VCSStateStore.shared.state(for: worktreePath, remoteHost: project.remoteHost)
     }
 }
