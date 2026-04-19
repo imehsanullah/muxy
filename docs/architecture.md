@@ -81,7 +81,7 @@ Muxy/
       GitModels.swift             GitStatusFile, DiffDisplayRow, NumstatEntry
     GitDirectoryWatcher.swift FSEvents watcher for .git changes
     FileSearchService.swift   Quick open file search via /usr/bin/find subprocess
-    ThemeService.swift        Theme discovery + application
+    ThemeService.swift        Theme discovery + application; syncs bundled Muxy themes into Ghostty's user theme directory
     MuxyConfig.swift          Ghostty config file read/write
     KeyBindingStore.swift     @Observable store for keyboard shortcuts
     KeyBindingPersistence.swift  JSON persistence for shortcuts

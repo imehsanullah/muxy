@@ -21,6 +21,7 @@ final class GhosttyService {
     }
 
     private func initializeGhostty() {
+        ThemeService.installBundledThemesIfNeeded()
         resolveGhosttyResources()
 
         let result = ghostty_init(UInt(CommandLine.argc), CommandLine.unsafeArgv)
