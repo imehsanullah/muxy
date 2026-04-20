@@ -21,8 +21,11 @@ struct CreateWorktreeSheet: View {
     @State private var inProgress = false
     @State private var errorMessage: String?
 
-    private let gitRepository = GitRepositoryService()
     private let gitWorktree = GitWorktreeService.shared
+
+    private var gitRepository: GitRepositoryService {
+        GitRepositoryService(sshDestination: project.remoteHost)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -162,6 +165,11 @@ struct CreateWorktreeSheet: View {
     }
 
     private func loadSetupCommands() {
+        if project.isRemote {
+            setupCommands = []
+            runSetup = false
+            return
+        }
         guard let config = WorktreeConfig.load(fromProjectPath: project.path) else {
             setupCommands = []
             return
@@ -201,12 +209,15 @@ struct CreateWorktreeSheet: View {
             ? branchName.trimmingCharacters(in: .whitespaces)
             : selectedExistingBranch
 
-        let slug = Self.slug(from: trimmedName)
-        let worktreeDirectory = MuxyFileStorage
-            .worktreeDirectory(forProjectID: project.id, name: slug)
-            .path(percentEncoded: false)
+        let worktreeDirectory = WorktreePathResolver.path(for: project, name: trimmedName)
 
-        if FileManager.default.fileExists(atPath: worktreeDirectory) {
+        let alreadyExists = if project.isRemote {
+            worktreeStore.list(for: project.id).contains { $0.path == worktreeDirectory }
+        } else {
+            FileManager.default.fileExists(atPath: worktreeDirectory)
+        }
+
+        if alreadyExists {
             await MainActor.run {
                 inProgress = false
                 errorMessage = "A worktree with this name already exists on disk."
@@ -219,7 +230,8 @@ struct CreateWorktreeSheet: View {
                 repoPath: project.path,
                 path: worktreeDirectory,
                 branch: branch,
-                createBranch: createNewBranch
+                createBranch: createNewBranch,
+                sshDestination: project.remoteHost
             )
         } catch {
             await MainActor.run {
@@ -241,14 +253,5 @@ struct CreateWorktreeSheet: View {
             inProgress = false
             onFinish(.created(worktree, runSetup: runSetup))
         }
-    }
-
-    private static func slug(from name: String) -> String {
-        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
-        let scalars = name.unicodeScalars.map { allowed.contains($0) ? Character($0) : "-" }
-        let collapsed = String(scalars)
-            .split(separator: "-", omittingEmptySubsequences: true)
-            .joined(separator: "-")
-        return collapsed.isEmpty ? UUID().uuidString : collapsed
     }
 }

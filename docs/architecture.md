@@ -75,7 +75,7 @@ Muxy/
       GitRepositoryService.swift  Git command execution (Sendable struct; dispatches via GitProcessRunner)
       GitProcessRunner.swift      Concurrent Process dispatcher for git/gh, unblocks main thread
       GitSignpost.swift           os_signpost helpers for instrumenting git/gh calls
-      GitWorktreeService.swift    git worktree list/add/remove (actor)
+      GitWorktreeService.swift    git worktree list/add/remove for local and SSH-backed repos (actor)
       GitDiffParser.swift         Diff patch parsing, context collapsing
       GitStatusParser.swift       Porcelain + numstat output parsing
       GitModels.swift             GitStatusFile, DiffDisplayRow, NumstatEntry
@@ -93,6 +93,7 @@ Muxy/
     MobileServerService.swift  Lifecycle wrapper around MuxyRemoteServer
     WorktreeStore.swift       @Observable store for per-project worktrees
     WorktreePersistence.swift JSON persistence for worktrees (one file per project)
+    WorktreePathResolver.swift Shared local/remote worktree path planning
     ProjectOpenService.swift  Shared local/remote project creation flow used by commands and sidebar
     WorktreeSetupRunner.swift Dispatches .muxy/worktree.json setup commands to a new tab
     WorkspacePersistence.swift JSON persistence for workspaces
@@ -166,14 +167,15 @@ Muxy/
 Project → Worktree → SplitNode (splits/tab areas) → TerminalTab → Pane
 ```
 
-Each project has at least one **primary** worktree pointing at `Project.path`. Local
-Git projects may add more worktrees via `git worktree add`, each with their own split
+Each project has at least one **primary** worktree pointing at `Project.path`. Git
+projects may add more worktrees via `git worktree add`, each with their own split
 tree, tabs, focus state, and working directory. Secondary worktrees can be either
 Muxy-managed checkouts created from the sidebar or externally created Git worktrees
 that are imported into the sidebar with a manual refresh. Remote projects persist an
 SSH destination plus a remote path; their primary worktree still points at
-`Project.path`, but terminal panes launch through `ssh -t` instead of using the path
-as a local working directory. Workspace state is keyed by `WorktreeKey(projectID,
+`Project.path`, terminal panes launch through `ssh -t`, and worktree refresh/create/
+remove flows execute over SSH against the remote repository instead of using local app
+support checkout paths. Workspace state is keyed by `WorktreeKey(projectID,
 worktreeID)` in `AppState` so every per-project map is actually per-worktree.
 `AppState.activeWorktreeID[projectID]` tracks which worktree is currently visible for
 each project.

@@ -62,12 +62,11 @@ struct ExpandedProjectRow: View {
                 worktreeList
             }
         }
-        .task(id: project.path) {
-            if project.isRemote {
-                isGitRepo = false
-            } else {
-                isGitRepo = await GitWorktreeService.shared.isGitRepository(project.path)
-            }
+        .task(id: project.locationLabel) {
+            isGitRepo = await GitWorktreeService.shared.isGitRepository(
+                project.path,
+                sshDestination: project.remoteHost
+            )
         }
         .onChange(of: isActive) { _, active in
             if !active {
@@ -87,7 +86,7 @@ struct ExpandedProjectRow: View {
             }
             Divider()
             Button("Rename Project") { startRename() }
-            if isGitRepo && !project.isRemote {
+            if isGitRepo {
                 Divider()
                 Button("Refresh Worktrees") { Task { await refreshWorktrees() } }
                 Button("New Worktree…") { showCreateWorktreeSheet = true }
@@ -173,7 +172,7 @@ struct ExpandedProjectRow: View {
         }
         .onTapGesture {
             guard !isAnyDragging else { return }
-            if isActive, isGitRepo, !project.isRemote {
+            if isActive, isGitRepo {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     worktreesExpanded.toggle()
                 }
@@ -254,7 +253,11 @@ struct ExpandedProjectRow: View {
                     worktree: worktree,
                     selected: worktree.id == activeWorktreeID,
                     onSelect: {
-                        appState.selectWorktree(projectID: project.id, worktree: worktree)
+                        appState.selectWorktree(
+                            projectID: project.id,
+                            remoteHost: project.remoteHost,
+                            worktree: worktree
+                        )
                     },
                     onRename: { newName in
                         worktreeStore.rename(
@@ -341,7 +344,7 @@ struct ExpandedProjectRow: View {
     private func handleCreateWorktreeResult(_ result: CreateWorktreeResult) {
         switch result {
         case let .created(worktree, runSetup):
-            appState.selectWorktree(projectID: project.id, worktree: worktree)
+            appState.selectWorktree(projectID: project.id, remoteHost: project.remoteHost, worktree: worktree)
             worktreesExpanded = true
             if runSetup,
                let paneID = appState.focusedArea(for: project.id)?.activeTab?.content.pane?.id
@@ -359,7 +362,10 @@ struct ExpandedProjectRow: View {
     }
 
     private func requestRemove(worktree: Worktree) async {
-        let hasChanges = await GitWorktreeService.shared.hasUncommittedChanges(worktreePath: worktree.path)
+        let hasChanges = await GitWorktreeService.shared.hasUncommittedChanges(
+            worktreePath: worktree.path,
+            sshDestination: project.remoteHost
+        )
         if !hasChanges {
             performRemove(worktree: worktree)
             return
@@ -396,6 +402,7 @@ struct ExpandedProjectRow: View {
             ?? remaining.first
         appState.removeWorktree(
             projectID: project.id,
+            remoteHost: project.remoteHost,
             worktree: worktree,
             replacement: replacement
         )
@@ -403,7 +410,8 @@ struct ExpandedProjectRow: View {
         Task.detached {
             await WorktreeStore.cleanupOnDisk(
                 worktree: worktree,
-                repoPath: repoPath
+                repoPath: repoPath,
+                sshDestination: project.remoteHost
             )
         }
     }

@@ -19,7 +19,8 @@ final class AppState {
             projectID: UUID,
             worktreeID: UUID,
             replacementWorktreeID: UUID?,
-            replacementWorktreePath: String?
+            replacementWorktreePath: String?,
+            replacementRemoteHost: String?
         )
         case createTab(projectID: UUID, areaID: UUID?)
         case createVCSTab(projectID: UUID, areaID: UUID?)
@@ -540,7 +541,19 @@ final class AppState {
             projectID: projectID,
             worktreeID: worktree.id,
             replacementWorktreeID: replacement?.id,
-            replacementWorktreePath: replacement?.path
+            replacementWorktreePath: replacement?.path,
+            replacementRemoteHost: nil
+        ))
+    }
+
+    func removeWorktree(projectID: UUID, remoteHost: String?, worktree: Worktree, replacement: Worktree?) {
+        guard !worktree.isPrimary else { return }
+        dispatch(.removeWorktree(
+            projectID: projectID,
+            worktreeID: worktree.id,
+            replacementWorktreeID: replacement?.id,
+            replacementWorktreePath: replacement?.path,
+            replacementRemoteHost: remoteHost
         ))
     }
 }

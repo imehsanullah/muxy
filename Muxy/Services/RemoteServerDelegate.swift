@@ -425,12 +425,14 @@ final class RemoteServerDelegate: MuxyRemoteServerDelegate {
         guard !trimmedBranch.isEmpty else {
             throw RemoteVCSError.invalidInput("Branch name is required.")
         }
-        let slug = Self.worktreeSlug(from: trimmedName)
-        let worktreeDirectory = MuxyFileStorage
-            .worktreeDirectory(forProjectID: project.id, name: slug)
-            .path(percentEncoded: false)
+        let worktreeDirectory = WorktreePathResolver.path(for: project, name: trimmedName)
 
-        if FileManager.default.fileExists(atPath: worktreeDirectory) {
+        let alreadyExists = if project.isRemote {
+            worktreeStore.list(for: project.id).contains { $0.path == worktreeDirectory }
+        } else {
+            FileManager.default.fileExists(atPath: worktreeDirectory)
+        }
+        if alreadyExists {
             throw RemoteVCSError.invalidInput("A worktree with this name already exists on disk.")
         }
 
@@ -438,7 +440,8 @@ final class RemoteServerDelegate: MuxyRemoteServerDelegate {
             repoPath: project.path,
             path: worktreeDirectory,
             branch: trimmedBranch,
-            createBranch: createBranch
+            createBranch: createBranch,
+            sshDestination: project.remoteHost
         )
 
         let worktree = Worktree(
@@ -467,7 +470,11 @@ final class RemoteServerDelegate: MuxyRemoteServerDelegate {
             )
         }
 
-        await WorktreeStore.cleanupOnDisk(worktree: worktree, repoPath: project.path)
+        await WorktreeStore.cleanupOnDisk(
+            worktree: worktree,
+            repoPath: project.path,
+            sshDestination: project.remoteHost
+        )
         worktreeStore.remove(worktreeID: worktreeID, from: projectID)
     }
 
@@ -504,15 +511,6 @@ final class RemoteServerDelegate: MuxyRemoteServerDelegate {
             }
         }
         return GitFileDTO(path: file.path, status: status, isUntracked: isUntracked)
-    }
-
-    private static func worktreeSlug(from name: String) -> String {
-        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
-        let scalars = name.unicodeScalars.map { allowed.contains($0) ? Character($0) : "-" }
-        let collapsed = String(scalars)
-            .split(separator: "-", omittingEmptySubsequences: true)
-            .joined(separator: "-")
-        return collapsed.isEmpty ? UUID().uuidString : collapsed
     }
 
     enum RemoteVCSError: LocalizedError {

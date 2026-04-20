@@ -9,12 +9,15 @@ final class WorktreeStore {
     private(set) var worktrees: [UUID: [Worktree]] = [:]
     private var projectIDByPath: [String: UUID] = [:]
     private let persistence: any WorktreePersisting
-    private let listGitWorktrees: @Sendable (String) async throws -> [GitWorktreeRecord]
+    private let listGitWorktrees: @Sendable (Project) async throws -> [GitWorktreeRecord]
 
     init(
         persistence: any WorktreePersisting,
-        listGitWorktrees: @escaping @Sendable (String) async throws -> [GitWorktreeRecord] = {
-            try await GitWorktreeService.shared.listWorktrees(repoPath: $0)
+        listGitWorktrees: @escaping @Sendable (Project) async throws -> [GitWorktreeRecord] = {
+            try await GitWorktreeService.shared.listWorktrees(
+                repoPath: $0.path,
+                sshDestination: $0.remoteHost
+            )
         },
         projects: [Project] = []
     ) {
@@ -80,15 +83,11 @@ final class WorktreeStore {
     }
 
     func refreshFromGit(project: Project) async throws -> [Worktree] {
-        if project.isRemote {
-            ensurePrimary(for: project)
-            return worktrees[project.id] ?? [makePrimary(for: project)]
-        }
         ensurePrimary(for: project)
-        let records = try await listGitWorktrees(project.path).filter { !$0.isBare && !$0.isPrunable }
+        let records = try await listGitWorktrees(project).filter { !$0.isBare && !$0.isPrunable }
         var list = worktrees[project.id] ?? []
-        let projectKey = Self.canonicalPath(project.path)
-        let recordKeys = Set(records.map { Self.canonicalPath($0.path) })
+        let projectKey = Self.canonicalPath(project.path, isRemote: project.isRemote)
+        let recordKeys = Set(records.map { Self.canonicalPath($0.path, isRemote: project.isRemote) })
 
         if let primaryIndex = list.firstIndex(where: \.isPrimary) {
             list[primaryIndex].path = project.path
@@ -99,7 +98,7 @@ final class WorktreeStore {
 
         var existingByKey: [String: Worktree] = [:]
         for worktree in list {
-            let key = Self.canonicalPath(worktree.path)
+            let key = Self.canonicalPath(worktree.path, isRemote: project.isRemote)
             if let existing = existingByKey[key] {
                 if worktree.isPrimary, !existing.isPrimary {
                     existingByKey[key] = worktree
@@ -110,7 +109,7 @@ final class WorktreeStore {
         }
 
         for record in records {
-            let recordKey = Self.canonicalPath(record.path)
+            let recordKey = Self.canonicalPath(record.path, isRemote: project.isRemote)
             if recordKey == projectKey {
                 if let primaryIndex = list.firstIndex(where: \.isPrimary) {
                     list[primaryIndex].branch = record.branch
@@ -139,27 +138,33 @@ final class WorktreeStore {
         }
 
         let sorted = sortPrimaryFirst(list.filter {
-            !$0.isExternallyManaged || recordKeys.contains(Self.canonicalPath($0.path))
+            !$0.isExternallyManaged
+                || recordKeys.contains(Self.canonicalPath($0.path, isRemote: project.isRemote))
         })
         setWorktrees(sorted, for: project.id)
         save(projectID: project.id)
         return sorted
     }
 
-    private static func canonicalPath(_ path: String) -> String {
-        URL(fileURLWithPath: path).standardizedFileURL.resolvingSymlinksInPath().path
+    private static func canonicalPath(_ path: String, isRemote: Bool) -> String {
+        if isRemote {
+            return URL(fileURLWithPath: path).standardizedFileURL.path
+        }
+        return URL(fileURLWithPath: path).standardizedFileURL.resolvingSymlinksInPath().path
     }
 
     static func cleanupOnDisk(
         worktree: Worktree,
-        repoPath: String
+        repoPath: String,
+        sshDestination: String? = nil
     ) async {
         guard worktree.canBeRemoved else { return }
         do {
             try await GitWorktreeService.shared.removeWorktree(
                 repoPath: repoPath,
                 path: worktree.path,
-                force: true
+                force: true,
+                sshDestination: sshDestination
             )
         } catch {
             logger.error("Failed to remove git worktree at \(worktree.path): \(error)")
@@ -170,12 +175,19 @@ final class WorktreeStore {
            !branch.isEmpty
         {
             do {
-                try await GitWorktreeService.shared.deleteBranch(repoPath: repoPath, branch: branch)
+                try await GitWorktreeService.shared.deleteBranch(
+                    repoPath: repoPath,
+                    branch: branch,
+                    sshDestination: sshDestination
+                )
             } catch {
                 logger.error("Failed to delete branch \(branch) for worktree \(worktree.path): \(error)")
             }
         }
 
+        if sshDestination != nil {
+            return
+        }
         try? FileManager.default.removeItem(atPath: worktree.path)
         removeParentDirectoryIfEmpty(for: worktree.path)
     }
@@ -186,7 +198,11 @@ final class WorktreeStore {
         }
         let secondaryWorktrees = knownWorktrees.filter(\.canBeRemoved)
         for worktree in secondaryWorktrees {
-            await cleanupOnDisk(worktree: worktree, repoPath: project.path)
+            await cleanupOnDisk(
+                worktree: worktree,
+                repoPath: project.path,
+                sshDestination: project.remoteHost
+            )
         }
 
         let root = MuxyFileStorage.worktreeRoot(forProjectID: project.id)

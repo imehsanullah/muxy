@@ -22,7 +22,12 @@ enum WorktreeRefreshHelper {
             } ?? refreshed.first(where: \.isPrimary) ?? refreshed.first
 
             for worktree in previous where !refreshedIDs.contains(worktree.id) {
-                appState.removeWorktree(projectID: project.id, worktree: worktree, replacement: replacement)
+                appState.removeWorktree(
+                    projectID: project.id,
+                    remoteHost: project.remoteHost,
+                    worktree: worktree,
+                    replacement: replacement
+                )
             }
         } catch {
             presentError(error.localizedDescription)
