@@ -27,8 +27,11 @@ struct CreateWorktreeSheet: View {
     @State private var inProgress = false
     @State private var errorMessage: String?
 
-    private let gitRepository = GitRepositoryService()
     private let gitWorktree = GitWorktreeService.shared
+
+    private var gitRepository: GitRepositoryService {
+        GitRepositoryService(sshDestination: project.remoteHost)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: UIMetrics.scaled(14)) {
@@ -67,7 +70,9 @@ struct CreateWorktreeSheet: View {
                 }
             }
 
-            locationSection
+            if !project.isRemote {
+                locationSection
+            }
 
             if setupCommands.isEmpty {
                 setupCommandsGuideSection
@@ -200,6 +205,11 @@ struct CreateWorktreeSheet: View {
     }
 
     private func loadSetupCommands() {
+        if project.isRemote {
+            setupCommands = []
+            runSetup = false
+            return
+        }
         guard let config = WorktreeConfig.load(fromProjectPath: project.path) else {
             setupCommands = []
             return
@@ -208,6 +218,7 @@ struct CreateWorktreeSheet: View {
     }
 
     private func loadLocation() {
+        guard !project.isRemote else { return }
         guard selectedParentPath == nil, !usesProjectLocation else { return }
         guard let path = WorktreeLocationResolver.normalizedPath(project.preferredWorktreeParentPath) else { return }
         selectedParentPath = path
@@ -271,29 +282,40 @@ struct CreateWorktreeSheet: View {
             ? branchName.trimmingCharacters(in: .whitespaces)
             : selectedExistingBranch
 
-        let slug = Self.slug(from: trimmedName)
-        let parentDirectory = parentDirectoryPath
-        let worktreeDirectory = URL(fileURLWithPath: parentDirectory, isDirectory: true)
-            .appendingPathComponent(slug, isDirectory: true)
-            .path
+        let worktreeDirectory: String
+        if project.isRemote {
+            worktreeDirectory = WorktreePathResolver.path(for: project, name: trimmedName)
+        } else {
+            let slug = WorktreePathResolver.slug(from: trimmedName)
+            let parentDirectory = parentDirectoryPath
+            worktreeDirectory = URL(fileURLWithPath: parentDirectory, isDirectory: true)
+                .appendingPathComponent(slug, isDirectory: true)
+                .path
 
-        if FileManager.default.fileExists(atPath: worktreeDirectory) {
-            inProgress = false
-            errorMessage = "A worktree with this name already exists on disk."
-            return
+            do {
+                try await GitProcessRunner.offMainThrowing {
+                    try FileManager.default.createDirectory(
+                        atPath: parentDirectory,
+                        withIntermediateDirectories: true,
+                        attributes: nil
+                    )
+                }
+            } catch {
+                inProgress = false
+                errorMessage = error.localizedDescription
+                return
+            }
         }
 
-        do {
-            try await GitProcessRunner.offMainThrowing {
-                try FileManager.default.createDirectory(
-                    atPath: parentDirectory,
-                    withIntermediateDirectories: true,
-                    attributes: nil
-                )
-            }
-        } catch {
+        let alreadyExists = if project.isRemote {
+            worktreeStore.list(for: project.id).contains { $0.path == worktreeDirectory }
+        } else {
+            FileManager.default.fileExists(atPath: worktreeDirectory)
+        }
+
+        if alreadyExists {
             inProgress = false
-            errorMessage = error.localizedDescription
+            errorMessage = "A worktree with this name already exists on disk."
             return
         }
 
@@ -302,7 +324,8 @@ struct CreateWorktreeSheet: View {
                 repoPath: project.path,
                 path: worktreeDirectory,
                 branch: branch,
-                createBranch: createNewBranch
+                createBranch: createNewBranch,
+                sshDestination: project.remoteHost
             )
         } catch {
             inProgress = false
@@ -317,21 +340,14 @@ struct CreateWorktreeSheet: View {
             ownsBranch: createNewBranch,
             isPrimary: false
         )
-        projectStore.setPreferredWorktreeParentPath(
-            id: project.id,
-            to: usesProjectLocation ? selectedParentPath : nil
-        )
+        if !project.isRemote {
+            projectStore.setPreferredWorktreeParentPath(
+                id: project.id,
+                to: usesProjectLocation ? selectedParentPath : nil
+            )
+        }
         worktreeStore.add(worktree, to: project.id)
         inProgress = false
         onFinish(.created(worktree, runSetup: runSetup))
-    }
-
-    private static func slug(from name: String) -> String {
-        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
-        let scalars = name.unicodeScalars.map { allowed.contains($0) ? Character($0) : "-" }
-        let collapsed = String(scalars)
-            .split(separator: "-", omittingEmptySubsequences: true)
-            .joined(separator: "-")
-        return collapsed.isEmpty ? UUID().uuidString : collapsed
     }
 }

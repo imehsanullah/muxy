@@ -1,6 +1,6 @@
 # Worktrees
 
-Every project starts with a primary worktree (the project root). Git projects can attach more — each worktree has its own tabs, splits, and active selection.
+Every project starts with a primary worktree (the project root). Git projects, including SSH-backed remote projects, can attach more — each worktree has its own tabs, splits, and active selection.
 
 ```mermaid
 flowchart TB
@@ -30,7 +30,7 @@ The **New Worktree** sheet asks for:
 | Base | Ref to branch from (when creating a new branch) |
 | Path | Where the worktree directory should live |
 
-Muxy runs `git worktree add` and registers the new worktree with the project.
+Muxy runs `git worktree add` and registers the new worktree with the project. For remote projects, Muxy runs the worktree command over SSH and chooses a sibling path next to the remote project root.
 
 ## Setup commands
 

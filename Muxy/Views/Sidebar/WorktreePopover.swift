@@ -32,7 +32,11 @@ struct WorktreePopover: View {
             footerActions: footerActions,
             fixedSize: fixedSize,
             onSelect: { worktree in
-                appState.selectWorktree(projectID: project.id, worktree: worktree)
+                appState.selectWorktree(
+                    projectID: project.id,
+                    remoteHost: project.remoteHost,
+                    worktree: worktree
+                )
                 onDismiss()
             },
             row: { worktree, isHighlighted in
@@ -41,7 +45,11 @@ struct WorktreePopover: View {
                     selected: worktree.id == activeWorktreeID,
                     isHighlighted: isHighlighted,
                     onSelect: {
-                        appState.selectWorktree(projectID: project.id, worktree: worktree)
+                        appState.selectWorktree(
+                            projectID: project.id,
+                            remoteHost: project.remoteHost,
+                            worktree: worktree
+                        )
                         onDismiss()
                     },
                     onRename: { newName in
@@ -88,7 +96,10 @@ struct WorktreePopover: View {
     }
 
     private func requestRemove(worktree: Worktree) async {
-        let hasChanges = await GitWorktreeService.shared.hasUncommittedChanges(worktreePath: worktree.path)
+        let hasChanges = await GitWorktreeService.shared.hasUncommittedChanges(
+            worktreePath: worktree.path,
+            sshDestination: project.remoteHost
+        )
         if !hasChanges {
             performRemove(worktree: worktree)
             return
@@ -125,6 +136,7 @@ struct WorktreePopover: View {
             ?? remaining.first
         appState.removeWorktree(
             projectID: project.id,
+            remoteHost: project.remoteHost,
             worktree: worktree,
             replacement: replacement
         )
@@ -132,7 +144,8 @@ struct WorktreePopover: View {
         Task.detached {
             await WorktreeStore.cleanupOnDisk(
                 worktree: worktree,
-                repoPath: repoPath
+                repoPath: repoPath,
+                sshDestination: project.remoteHost
             )
         }
     }

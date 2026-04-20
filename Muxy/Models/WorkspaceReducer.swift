@@ -42,13 +42,19 @@ enum WorkspaceReducer {
         case let .removeProject(projectID):
             ProjectLifecycleReducer.removeProject(projectID: projectID, state: &state, effects: &effects)
 
-        case let .removeWorktree(projectID, worktreeID, replacementWorktreeID, replacementWorktreePath):
+        case let .removeWorktree(
+            projectID,
+            worktreeID,
+            replacementWorktreeID,
+            replacementWorktreePath,
+            replacementRemoteHost
+        ):
             let replacement: ProjectLifecycleReducer.WorktreeReplacement? =
                 if let replacementWorktreeID, let replacementWorktreePath {
                     ProjectLifecycleReducer.WorktreeReplacement(
                         id: replacementWorktreeID,
                         path: replacementWorktreePath,
-                        remoteHost: nil
+                        remoteHost: replacementRemoteHost
                     )
                 } else {
                     nil

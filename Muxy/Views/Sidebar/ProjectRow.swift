@@ -57,12 +57,11 @@ struct ProjectRow: View {
                 guard !isAnyDragging else { return }
                 onSelect()
             }
-            .task(id: project.path) {
-                if project.isRemote {
-                    isGitRepo = false
-                } else {
-                    isGitRepo = await GitWorktreeService.shared.isGitRepository(project.path)
-                }
+            .task(id: project.locationLabel) {
+                isGitRepo = await GitWorktreeService.shared.isGitRepository(
+                    project.path,
+                    sshDestination: project.remoteHost
+                )
             }
             .contextMenu {
                 Button("Set Logo...") { pickLogoImage() }
@@ -75,7 +74,7 @@ struct ProjectRow: View {
                 }
                 Divider()
                 Button("Rename Project") { startRename() }
-                if isGitRepo && !project.isRemote {
+                if isGitRepo {
                     Divider()
                     Button("Refresh Worktrees") { Task { await refreshWorktrees() } }
                     Button("New Worktree…") { showCreateWorktreeSheet = true }
@@ -246,7 +245,7 @@ struct ProjectRow: View {
     private func handleCreateWorktreeResult(_ result: CreateWorktreeResult) {
         switch result {
         case let .created(worktree, runSetup):
-            appState.selectWorktree(projectID: project.id, worktree: worktree)
+            appState.selectWorktree(projectID: project.id, remoteHost: project.remoteHost, worktree: worktree)
             if runSetup,
                let paneID = appState.focusedArea(for: project.id)?.activeTab?.content.pane?.id
             {

@@ -311,6 +311,7 @@ struct VCSTabView: View {
         let replacement = remaining.first(where: { $0.isPrimary }) ?? remaining.first
         appState.removeWorktree(
             projectID: project.id,
+            remoteHost: project.remoteHost,
             worktree: worktree,
             replacement: replacement
         )
@@ -318,7 +319,8 @@ struct VCSTabView: View {
         Task.detached {
             await WorktreeStore.cleanupOnDisk(
                 worktree: worktree,
-                repoPath: repoPath
+                repoPath: repoPath,
+                sshDestination: project.remoteHost
             )
             await state.deleteRemoteBranch(mergedBranch)
         }
@@ -348,7 +350,7 @@ struct VCSTabView: View {
     private func handleCreateWorktreeResult(_ result: CreateWorktreeResult, project: Project) {
         switch result {
         case let .created(worktree, runSetup):
-            appState.selectWorktree(projectID: project.id, worktree: worktree)
+            appState.selectWorktree(projectID: project.id, remoteHost: project.remoteHost, worktree: worktree)
             if runSetup,
                let paneID = appState.focusedArea(for: project.id)?.activeTab?.content.pane?.id
             {
