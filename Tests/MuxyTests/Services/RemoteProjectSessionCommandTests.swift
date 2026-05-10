@@ -34,6 +34,19 @@ struct RemoteProjectSessionCommandTests {
         #expect(command.contains(sessionName))
     }
 
+    @Test("command enables tmux mouse scrollback")
+    func commandEnablesTmuxMouseScrollback() {
+        let command = RemoteProjectSessionCommand.make(
+            sshDestination: "dev@example.com",
+            remotePath: "/srv/project",
+            sessionName: "muxy-test",
+            remoteCommand: "exec ${SHELL:-/bin/zsh} -l"
+        )
+
+        #expect(command.contains("tmux set-option -t '\\''muxy-test'\\'' mouse on"))
+        #expect(command.contains("tmux set-option -t '\\''muxy-test'\\'' history-limit 1000000"))
+    }
+
     @Test("command styles tmux status bar with default background and grey text")
     func commandStylesTmuxStatusBar() {
         let command = RemoteProjectSessionCommand.make(
