@@ -42,6 +42,8 @@ When a user runs `cd` inside a terminal, libghostty emits `GHOSTTY_ACTION_PWD`. 
 
 Remote project panes keep Ghostty's local working directory at the user's home directory and launch an SSH command generated from the stored host and remote path. Local panes use the persisted cwd when available.
 
+Remote terminal panes also persist a stable session ID in `TerminalTabSnapshot`. Muxy combines project, worktree, and terminal session identity into a tmux session name, then reconnects with the same name after workspace restore, app wake, network recovery, or an explicit reconnect action. When a remote pane, worktree, project, or layout is removed, `WorkspaceSideEffects.remoteSessionsToKill` queues `RemoteSessionTerminator` so the matching tmux session is cleaned up on the remote host.
+
 ## Environment variables
 
 Each surface receives:

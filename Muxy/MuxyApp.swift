@@ -238,6 +238,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeSystemAppearanceChanges()
         UpdateService.shared.start()
         ModifierKeyMonitor.shared.start()
+        RemoteSessionReconnectMonitor.shared.start()
         NotificationSocketServer.shared.start()
         AIProviderRegistry.shared.installAll()
         _ = AIUsageSettingsStore.isUsageEnabled()

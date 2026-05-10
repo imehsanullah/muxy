@@ -644,6 +644,10 @@ final class AppState {
         }
         reconcilePendingClosures()
 
+        for cleanup in effects.remoteSessionsToKill {
+            RemoteSessionTerminator.kill(cleanup)
+        }
+
         for paneID in effects.paneIDsToRemove {
             terminalViews.removeView(for: paneID)
             TerminalProgressStore.shared.resetPane(paneID)

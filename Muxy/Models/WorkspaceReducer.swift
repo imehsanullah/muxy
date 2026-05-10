@@ -10,6 +10,11 @@ struct WorkspaceState {
     var keepProjectOpenWhenEmpty: Bool = false
 }
 
+struct RemoteSessionCleanup: Hashable, Sendable {
+    let sshDestination: String
+    let sessionName: String
+}
+
 @MainActor
 struct WorkspaceSideEffects {
     struct DeferredAreaCollapse {
@@ -20,6 +25,7 @@ struct WorkspaceSideEffects {
     var paneIDsToRemove: [UUID] = []
     var projectIDsToRemove: [UUID] = []
     var deferredAreaCollapses: [DeferredAreaCollapse] = []
+    var remoteSessionsToKill: [RemoteSessionCleanup] = []
 }
 
 @MainActor
@@ -216,8 +222,12 @@ enum WorkspaceReducer {
         guard let key = WorkspaceReducerShared.activeKey(projectID: projectID, state: state) else { return }
         guard let built = LayoutWorkspaceBuilder.build(config: config, projectPath: worktreePath) else { return }
         if let existingRoot = state.workspaceRoots[key] {
-            let paneIDs = existingRoot.allAreas().flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
+            let areas = existingRoot.allAreas()
+            let paneIDs = areas.flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
             effects.paneIDsToRemove.append(contentsOf: paneIDs)
+            for area in areas {
+                WorkspaceReducerShared.appendRemoteSessionCleanups(from: area.tabs, key: key, effects: &effects)
+            }
         }
         state.workspaceRoots[key] = built.root
         state.focusedAreaID[key] = built.focusedAreaID

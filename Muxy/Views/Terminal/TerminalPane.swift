@@ -17,6 +17,10 @@ struct TerminalPane: View {
         if case let .remote(_, name) = ownership.owner(for: state.id) { name } else { nil }
     }
 
+    private var shouldShowRemoteConnectionOverlay: Bool {
+        remoteOwnerName == nil && state.isRemoteSession && state.remoteConnectionState != .connected
+    }
+
     var body: some View {
         terminalLayer
             .onAppear { state.branchObserver.start() }
@@ -54,6 +58,14 @@ struct TerminalPane: View {
                 .transition(.opacity)
             }
 
+            if shouldShowRemoteConnectionOverlay {
+                RemoteConnectionOverlay(
+                    state: state.remoteConnectionState,
+                    onReconnect: reconnectRemoteSession
+                )
+                .transition(.opacity)
+            }
+
             if state.searchState.isVisible {
                 TerminalSearchBar(
                     searchState: state.searchState,
@@ -75,6 +87,22 @@ struct TerminalPane: View {
                 )
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .remoteSessionsShouldReconnect)) { _ in
+            reconnectRemoteSessionIfDisconnected()
+        }
+    }
+
+    private func reconnectRemoteSessionIfDisconnected() {
+        guard state.remoteConnectionState == .disconnected else { return }
+        reconnectRemoteSession()
+    }
+
+    private func reconnectRemoteSession() {
+        guard let generation = state.beginReconnect() else { return }
+        TerminalViewRegistry.shared.restartSession(for: state.id)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [state] in
+            state.finishReconnect(generation: generation)
         }
     }
 }
@@ -116,6 +144,47 @@ struct RemoteControlledPlaceholder: View {
     }
 }
 
+struct RemoteConnectionOverlay: View {
+    let state: TerminalPaneState.RemoteConnectionState
+    let onReconnect: () -> Void
+
+    private var isReconnecting: Bool {
+        state == .reconnecting
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Spacer()
+            if isReconnecting {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.system(size: 28))
+                    .foregroundStyle(MuxyTheme.fgMuted)
+            }
+            Text(isReconnecting ? "Reconnecting remote session" : "Remote session disconnected")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(MuxyTheme.fg)
+            Text(isReconnecting ? "Restoring the SSH-backed terminal." : "The tab, splits, and project setup are preserved.")
+                .font(.system(size: 12))
+                .foregroundStyle(MuxyTheme.fgMuted)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
+            Button {
+                onReconnect()
+            } label: {
+                Label("Reconnect", systemImage: "arrow.clockwise")
+            }
+            .disabled(isReconnecting)
+            .buttonStyle(.borderedProminent)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(MuxyTheme.bg.opacity(0.94))
+    }
+}
+
 struct TerminalBridge: NSViewRepresentable {
     let state: TerminalPaneState
     let focused: Bool
@@ -141,7 +210,7 @@ struct TerminalBridge: NSViewRepresentable {
         let view = registry.view(
             for: state.id,
             workingDirectory: state.remoteHost == nil ? (state.currentWorkingDirectory ?? state.workingDirectory) : state.workingDirectory,
-            command: state.resolvedStartupCommand,
+            command: state.resolvedStartupCommand(worktreeKey: worktreeKey),
             commandInteractive: state.startupCommandInteractive
         )
         if view.envVars.isEmpty, let key = worktreeKey {

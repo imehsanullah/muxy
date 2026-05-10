@@ -147,8 +147,12 @@ enum TabReducer {
             return
         }
 
+        let tab = area.tabs.first { $0.id == tabID }
         if let paneID = area.closeTab(tabID) {
             effects.paneIDsToRemove.append(paneID)
+            if let tab {
+                WorkspaceReducerShared.appendRemoteSessionCleanup(from: tab, key: key, effects: &effects)
+            }
         }
 
         guard area.tabs.isEmpty else { return }

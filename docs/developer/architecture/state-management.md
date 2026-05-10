@@ -12,6 +12,7 @@ flowchart TB
   Reducer --> SideEffects[WorkspaceSideEffects<br/>create/destroy panes]
   NewState --> AppState
   SideEffects --> Registry[TerminalViewRegistry]
+  SideEffects --> RemoteCleanup[RemoteSessionTerminator]
   Registry --> Ghostty[ghostty_surface_t]
 ```
 
@@ -30,7 +31,7 @@ classDiagram
   TabArea "1" --> "*" TerminalTab
 ```
 
-A workspace tree is keyed by `WorktreeKey(projectID, worktreeID)`. `AppState.activeWorktreeID[projectID]` tracks the visible worktree per project. Remote projects use the same primary worktree model, but `Project.remoteHost` is threaded into `TabArea`, `TerminalPaneState`, and `VCSTabState` so terminal, Quick Open, and source-control operations run through SSH while the stored path remains the remote repository path.
+A workspace tree is keyed by `WorktreeKey(projectID, worktreeID)`. `AppState.activeWorktreeID[projectID]` tracks the visible worktree per project. Remote projects use the same primary worktree model, but `Project.remoteHost` is threaded into `TabArea`, `TerminalPaneState`, and `VCSTabState` so terminal, Quick Open, and source-control operations run through SSH while the stored path remains the remote repository path. Reducer side effects carry both local pane teardown and remote tmux session cleanup so UI state removal and SSH resource cleanup stay coordinated.
 
 ## Persistence
 

@@ -97,6 +97,7 @@ enum SplitReducer {
         guard let root = state.workspaceRoots[key] else { return false }
         if let area = root.findArea(id: areaID) {
             effects.paneIDsToRemove.append(contentsOf: area.tabs.compactMap { $0.content.pane?.id })
+            WorkspaceReducerShared.appendRemoteSessionCleanups(from: area.tabs, key: key, effects: &effects)
         }
         guard let newRoot = root.removing(areaID: areaID) else { return false }
         state.workspaceRoots[key] = newRoot

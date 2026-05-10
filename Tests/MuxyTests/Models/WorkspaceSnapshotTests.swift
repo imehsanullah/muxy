@@ -65,6 +65,24 @@ struct WorkspaceSnapshotTests {
         #expect(decoded.projectPath == testPath)
     }
 
+    @Test("TerminalTabSnapshot preserves terminal session identity")
+    func terminalTabSnapshotPreservesSessionID() throws {
+        let sessionID = UUID()
+        let snapshot = TerminalTabSnapshot(
+            kind: .terminal,
+            customTitle: nil,
+            colorID: nil,
+            isPinned: false,
+            projectPath: testPath,
+            paneTitle: "Shell",
+            terminalSessionID: sessionID
+        )
+        let data = try JSONEncoder().encode(snapshot)
+        let decoded = try JSONDecoder().decode(TerminalTabSnapshot.self, from: data)
+
+        #expect(decoded.terminalSessionID == sessionID)
+    }
+
     @Test("TerminalTabSnapshot Codable round-trip for editor")
     func editorTabSnapshotRoundTrip() throws {
         let snapshot = TerminalTabSnapshot(

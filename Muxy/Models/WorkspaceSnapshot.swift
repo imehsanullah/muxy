@@ -96,6 +96,20 @@ struct TabAreaSnapshot: Codable {
     let remoteHost: String?
     let tabs: [TerminalTabSnapshot]
     let activeTabIndex: Int?
+
+    init(
+        id: UUID,
+        projectPath: String,
+        remoteHost: String? = nil,
+        tabs: [TerminalTabSnapshot],
+        activeTabIndex: Int?
+    ) {
+        self.id = id
+        self.projectPath = projectPath
+        self.remoteHost = remoteHost
+        self.tabs = tabs
+        self.activeTabIndex = activeTabIndex
+    }
 }
 
 struct TerminalTabSnapshot: Codable {
@@ -108,6 +122,7 @@ struct TerminalTabSnapshot: Codable {
     let filePath: String?
     let currentWorkingDirectory: String?
     let startupCommand: String?
+    let terminalSessionID: UUID?
 
     init(
         kind: TerminalTab.Kind,
@@ -118,7 +133,8 @@ struct TerminalTabSnapshot: Codable {
         paneTitle: String?,
         filePath: String? = nil,
         currentWorkingDirectory: String? = nil,
-        startupCommand: String? = nil
+        startupCommand: String? = nil,
+        terminalSessionID: UUID? = nil
     ) {
         self.kind = kind
         self.customTitle = customTitle
@@ -129,6 +145,7 @@ struct TerminalTabSnapshot: Codable {
         self.filePath = filePath
         self.currentWorkingDirectory = currentWorkingDirectory
         self.startupCommand = startupCommand
+        self.terminalSessionID = terminalSessionID
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -141,6 +158,7 @@ struct TerminalTabSnapshot: Codable {
         case filePath
         case currentWorkingDirectory
         case startupCommand
+        case terminalSessionID
     }
 
     init(from decoder: Decoder) throws {
@@ -154,6 +172,7 @@ struct TerminalTabSnapshot: Codable {
         filePath = try container.decodeIfPresent(String.self, forKey: .filePath)
         currentWorkingDirectory = try container.decodeIfPresent(String.self, forKey: .currentWorkingDirectory)
         startupCommand = try container.decodeIfPresent(String.self, forKey: .startupCommand)
+        terminalSessionID = try container.decodeIfPresent(UUID.self, forKey: .terminalSessionID)
     }
 }
 

@@ -51,4 +51,35 @@ enum WorkspaceReducerShared {
         }
         effects.projectIDsToRemove.append(projectID)
     }
+
+    static func appendRemoteSessionCleanups(
+        from tabs: [TerminalTab],
+        key: WorktreeKey,
+        effects: inout WorkspaceSideEffects
+    ) {
+        for tab in tabs {
+            appendRemoteSessionCleanup(from: tab, key: key, effects: &effects)
+        }
+    }
+
+    static func appendRemoteSessionCleanup(
+        from tab: TerminalTab,
+        key: WorktreeKey,
+        effects: inout WorkspaceSideEffects
+    ) {
+        guard let pane = tab.content.pane,
+              let sshDestination = pane.remoteHost?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !sshDestination.isEmpty
+        else { return }
+        let cleanup = RemoteSessionCleanup(
+            sshDestination: sshDestination,
+            sessionName: RemoteProjectSessionCommand.sessionName(
+                projectID: key.projectID,
+                worktreeID: key.worktreeID,
+                terminalSessionID: pane.sessionID
+            )
+        )
+        guard !effects.remoteSessionsToKill.contains(cleanup) else { return }
+        effects.remoteSessionsToKill.append(cleanup)
+    }
 }
