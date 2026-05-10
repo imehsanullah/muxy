@@ -16,29 +16,19 @@ struct MainWindow: View {
     }
 
     private enum CloseConfirmationKind {
-        case lastTab
         case unsavedEditor
-        case runningProcess
 
         var title: String {
             switch self {
-            case .lastTab:
-                "Close Project?"
             case .unsavedEditor:
                 "Save Changes Before Closing?"
-            case .runningProcess:
-                "Close Tab?"
             }
         }
 
         var message: String {
             switch self {
-            case .lastTab:
-                "This is the last tab. Closing it will remove the project from the sidebar."
             case .unsavedEditor:
                 "This file has unsaved changes. If you don't save, your changes will be lost."
-            case .runningProcess:
-                "A process is still running in this tab. Are you sure you want to close it?"
             }
         }
     }
@@ -134,7 +124,9 @@ struct MainWindow: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .environment(\.overlayActive, showQuickOpen || showWorktreeSwitcher)
         .overlay(alignment: toastAlignment) {
             if let toast = ToastState.shared.message {
@@ -240,17 +232,9 @@ struct MainWindow: View {
             guard vcsPanelVisible, VCSDisplayMode.current == .attached else { return }
             ensureVCSState(for: project)
         }
-        .onChange(of: appState.pendingLastTabClose != nil) { _, isPresented in
-            guard isPresented else { return }
-            presentCloseConfirmation(.lastTab)
-        }
         .onChange(of: appState.pendingUnsavedEditorTabClose != nil) { _, isPresented in
             guard isPresented else { return }
             presentCloseConfirmation(.unsavedEditor)
-        }
-        .onChange(of: appState.pendingProcessTabClose != nil) { _, isPresented in
-            guard isPresented else { return }
-            presentCloseConfirmation(.runningProcess)
         }
         .onChange(of: appState.pendingSaveErrorMessage != nil) { _, isPresented in
             guard isPresented, let message = appState.pendingSaveErrorMessage else { return }
@@ -556,22 +540,10 @@ struct MainWindow: View {
             alert.buttons[1].keyEquivalent = "\u{1b}"
             alert.buttons[2].keyEquivalent = "d"
             alert.buttons[2].keyEquivalentModifierMask = [.command]
-        case .lastTab,
-             .runningProcess:
-            alert.addButton(withTitle: "Close")
-            alert.addButton(withTitle: "Cancel")
-            alert.buttons[0].keyEquivalent = "\r"
-            alert.buttons[1].keyEquivalent = "\u{1b}"
         }
 
         alert.beginSheetModal(for: window) { response in
             switch kind {
-            case .lastTab:
-                if response == .alertFirstButtonReturn {
-                    appState.confirmCloseLastTab()
-                } else {
-                    appState.cancelCloseLastTab()
-                }
             case .unsavedEditor:
                 switch response {
                 case .alertFirstButtonReturn:
@@ -580,12 +552,6 @@ struct MainWindow: View {
                     appState.confirmCloseUnsavedEditorTab()
                 default:
                     appState.cancelCloseUnsavedEditorTab()
-                }
-            case .runningProcess:
-                if response == .alertFirstButtonReturn {
-                    appState.confirmCloseRunningTab()
-                } else {
-                    appState.cancelCloseRunningTab()
                 }
             }
         }

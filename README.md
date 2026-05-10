@@ -72,6 +72,7 @@ The iOS app is available for testers on TestFlight
 
 ```bash
 scripts/setup.sh          # downloads GhosttyKit.xcframework
+scripts/install-from-source.sh   # build current code and install /Applications/Muxy.app
 swift build               # debug build
 swift run Muxy             # run
 ```

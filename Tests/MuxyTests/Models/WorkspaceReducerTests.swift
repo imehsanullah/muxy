@@ -109,6 +109,39 @@ struct WorkspaceReducerTests {
         #expect(!effects.paneIDsToRemove.isEmpty)
     }
 
+    @Test("removeProject queues remote tmux session cleanup")
+    func removeRemoteProjectQueuesSessionCleanup() {
+        let projectID = UUID()
+        let worktreeID = UUID()
+        var state = WorkspaceState(
+            activeProjectID: projectID,
+            activeWorktreeID: [projectID: worktreeID],
+            workspaceRoots: [:],
+            focusedAreaID: [:],
+            focusHistory: [:]
+        )
+        let key = WorktreeKey(projectID: projectID, worktreeID: worktreeID)
+        let area = TabArea(projectPath: "/srv/project", remoteHost: "dev")
+        state.workspaceRoots[key] = .tabArea(area)
+        state.focusedAreaID[key] = area.id
+        area.createTab()
+        let panes = area.tabs.compactMap(\.content.pane)
+
+        let effects = WorkspaceReducer.reduce(action: .removeProject(projectID: projectID), state: &state)
+        let expected = panes.map { pane in
+            RemoteSessionCleanup(
+                sshDestination: "dev",
+                sessionName: RemoteProjectSessionCommand.sessionName(
+                    projectID: projectID,
+                    worktreeID: worktreeID,
+                    terminalSessionID: pane.sessionID
+                )
+            )
+        }
+
+        #expect(effects.remoteSessionsToKill == expected)
+    }
+
     @Test("removeWorktree with replacement switches to replacement")
     func removeWorktreeWithReplacement() {
         let projectID = UUID()
@@ -229,6 +262,42 @@ struct WorkspaceReducerTests {
         )
         #expect(area.tabs.count == 1)
         #expect(!effects.paneIDsToRemove.isEmpty)
+    }
+
+    @Test("closeTab remote terminal queues tmux session cleanup")
+    func closeRemoteTabQueuesSessionCleanup() {
+        let projectID = UUID()
+        let worktreeID = UUID()
+        var state = WorkspaceState(
+            activeProjectID: projectID,
+            activeWorktreeID: [projectID: worktreeID],
+            workspaceRoots: [:],
+            focusedAreaID: [:],
+            focusHistory: [:]
+        )
+        let key = WorktreeKey(projectID: projectID, worktreeID: worktreeID)
+        let area = TabArea(projectPath: "/srv/project", remoteHost: "dev")
+        state.workspaceRoots[key] = .tabArea(area)
+        state.focusedAreaID[key] = area.id
+        area.createTab()
+        let tab = area.tabs[0]
+        let pane = tab.content.pane!
+
+        let effects = WorkspaceReducer.reduce(
+            action: .closeTab(projectID: projectID, areaID: area.id, tabID: tab.id),
+            state: &state
+        )
+
+        #expect(effects.remoteSessionsToKill == [
+            RemoteSessionCleanup(
+                sshDestination: "dev",
+                sessionName: RemoteProjectSessionCommand.sessionName(
+                    projectID: projectID,
+                    worktreeID: worktreeID,
+                    terminalSessionID: pane.sessionID
+                )
+            ),
+        ])
     }
 
     @Test("closeTab last tab in multi-area closes area instead")

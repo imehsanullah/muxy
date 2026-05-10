@@ -87,6 +87,7 @@ final class TerminalTab: Identifiable {
         switch snapshot.kind {
         case .terminal:
             content = .terminal(TerminalPaneState(
+                sessionID: snapshot.terminalSessionID ?? UUID(),
                 projectPath: snapshot.projectPath,
                 remoteHost: remoteHost,
                 title: snapshot.paneTitle,
@@ -113,7 +114,8 @@ final class TerminalTab: Identifiable {
             projectPath: content.projectPath,
             paneTitle: content.pane?.title,
             filePath: content.editorState?.filePath ?? content.pane?.externalEditorFilePath,
-            startupCommand: content.pane?.startupCommand
+            startupCommand: content.pane?.startupCommand,
+            terminalSessionID: content.pane?.sessionID
         )
     }
 }

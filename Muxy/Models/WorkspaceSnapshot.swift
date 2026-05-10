@@ -96,6 +96,20 @@ struct TabAreaSnapshot: Codable {
     let remoteHost: String?
     let tabs: [TerminalTabSnapshot]
     let activeTabIndex: Int?
+
+    init(
+        id: UUID,
+        projectPath: String,
+        remoteHost: String? = nil,
+        tabs: [TerminalTabSnapshot],
+        activeTabIndex: Int?
+    ) {
+        self.id = id
+        self.projectPath = projectPath
+        self.remoteHost = remoteHost
+        self.tabs = tabs
+        self.activeTabIndex = activeTabIndex
+    }
 }
 
 struct TerminalTabSnapshot: Codable {
@@ -107,6 +121,7 @@ struct TerminalTabSnapshot: Codable {
     let paneTitle: String
     let filePath: String?
     let startupCommand: String?
+    let terminalSessionID: UUID?
 
     init(
         kind: TerminalTab.Kind,
@@ -116,7 +131,8 @@ struct TerminalTabSnapshot: Codable {
         projectPath: String,
         paneTitle: String?,
         filePath: String? = nil,
-        startupCommand: String? = nil
+        startupCommand: String? = nil,
+        terminalSessionID: UUID? = nil
     ) {
         self.kind = kind
         self.customTitle = customTitle
@@ -126,6 +142,7 @@ struct TerminalTabSnapshot: Codable {
         self.paneTitle = paneTitle ?? "Terminal"
         self.filePath = filePath
         self.startupCommand = startupCommand
+        self.terminalSessionID = terminalSessionID
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -137,6 +154,7 @@ struct TerminalTabSnapshot: Codable {
         case paneTitle
         case filePath
         case startupCommand
+        case terminalSessionID
     }
 
     init(from decoder: Decoder) throws {
@@ -149,6 +167,7 @@ struct TerminalTabSnapshot: Codable {
         paneTitle = try container.decodeIfPresent(String.self, forKey: .paneTitle) ?? "Terminal"
         filePath = try container.decodeIfPresent(String.self, forKey: .filePath)
         startupCommand = try container.decodeIfPresent(String.self, forKey: .startupCommand)
+        terminalSessionID = try container.decodeIfPresent(UUID.self, forKey: .terminalSessionID)
     }
 }
 

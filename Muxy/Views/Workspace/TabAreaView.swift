@@ -64,7 +64,15 @@ struct TabAreaView: View {
                         focused: isActive && isFocused && isActiveProject,
                         visible: isActive,
                         onFocus: onFocus,
-                        onProcessExit: { onForceCloseTab(tab.id) },
+                        onProcessExit: {
+                            guard let pane = tab.content.pane else { return }
+                            switch pane.handleProcessExit() {
+                            case .closeTab:
+                                onForceCloseTab(tab.id)
+                            case .preserveTab:
+                                break
+                            }
+                        },
                         onSplitRequest: { direction, position in
                             appState.dispatch(.splitArea(.init(
                                 projectID: projectID,

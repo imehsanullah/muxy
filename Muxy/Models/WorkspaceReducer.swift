@@ -9,10 +9,16 @@ struct WorkspaceState {
     var focusHistory: [WorktreeKey: [UUID]]
 }
 
+struct RemoteSessionCleanup: Hashable, Sendable {
+    let sshDestination: String
+    let sessionName: String
+}
+
 @MainActor
 struct WorkspaceSideEffects {
     var paneIDsToRemove: [UUID] = []
     var projectIDsToRemove: [UUID] = []
+    var remoteSessionsToKill: [RemoteSessionCleanup] = []
 }
 
 @MainActor
@@ -302,6 +308,7 @@ enum WorkspaceReducer {
         guard let root = state.workspaceRoots[key] else { return false }
         if let area = root.findArea(id: areaID) {
             effects.paneIDsToRemove.append(contentsOf: area.tabs.compactMap { $0.content.pane?.id })
+            appendRemoteSessionCleanups(from: area.tabs, key: key, effects: &effects)
         }
         guard let newRoot = root.removing(areaID: areaID) else { return false }
         state.workspaceRoots[key] = newRoot
@@ -330,8 +337,12 @@ enum WorkspaceReducer {
             return
         }
 
+        let tab = area.tabs.first { $0.id == tabID }
         if let paneID = area.closeTab(tabID) {
             effects.paneIDsToRemove.append(paneID)
+            if let tab {
+                appendRemoteSessionCleanup(from: tab, key: key, effects: &effects)
+            }
         }
 
         guard area.tabs.isEmpty else { return }
@@ -486,8 +497,12 @@ enum WorkspaceReducer {
         let keysToRemove = state.workspaceRoots.keys.filter { $0.projectID == projectID }
         for key in keysToRemove {
             if let root = state.workspaceRoots[key] {
-                let paneIDs = root.allAreas().flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
+                let areas = root.allAreas()
+                let paneIDs = areas.flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
                 effects.paneIDsToRemove.append(contentsOf: paneIDs)
+                for area in areas {
+                    appendRemoteSessionCleanups(from: area.tabs, key: key, effects: &effects)
+                }
             }
             state.workspaceRoots.removeValue(forKey: key)
             state.focusedAreaID.removeValue(forKey: key)
@@ -508,8 +523,12 @@ enum WorkspaceReducer {
     ) {
         let key = WorktreeKey(projectID: projectID, worktreeID: worktreeID)
         if let root = state.workspaceRoots[key] {
-            let paneIDs = root.allAreas().flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
+            let areas = root.allAreas()
+            let paneIDs = areas.flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
             effects.paneIDsToRemove.append(contentsOf: paneIDs)
+            for area in areas {
+                appendRemoteSessionCleanups(from: area.tabs, key: key, effects: &effects)
+            }
         }
         state.workspaceRoots.removeValue(forKey: key)
         state.focusedAreaID.removeValue(forKey: key)
@@ -556,6 +575,37 @@ enum WorkspaceReducer {
         let area = TabArea(projectPath: worktreePath, remoteHost: remoteHost)
         state.workspaceRoots[key] = .tabArea(area)
         state.focusedAreaID[key] = area.id
+    }
+
+    private static func appendRemoteSessionCleanups(
+        from tabs: [TerminalTab],
+        key: WorktreeKey,
+        effects: inout WorkspaceSideEffects
+    ) {
+        for tab in tabs {
+            appendRemoteSessionCleanup(from: tab, key: key, effects: &effects)
+        }
+    }
+
+    private static func appendRemoteSessionCleanup(
+        from tab: TerminalTab,
+        key: WorktreeKey,
+        effects: inout WorkspaceSideEffects
+    ) {
+        guard let pane = tab.content.pane,
+              let sshDestination = pane.remoteHost?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !sshDestination.isEmpty
+        else { return }
+        let cleanup = RemoteSessionCleanup(
+            sshDestination: sshDestination,
+            sessionName: RemoteProjectSessionCommand.sessionName(
+                projectID: key.projectID,
+                worktreeID: key.worktreeID,
+                terminalSessionID: pane.sessionID
+            )
+        )
+        guard !effects.remoteSessionsToKill.contains(cleanup) else { return }
+        effects.remoteSessionsToKill.append(cleanup)
     }
 
     private static func resolveArea(key: WorktreeKey, areaID: UUID?, state: WorkspaceState) -> TabArea? {

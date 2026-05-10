@@ -62,7 +62,7 @@ Muxy/
     Worktree.swift            Per-project worktree slot (primary or git worktree)
     WorktreeKey.swift         Hashable (projectID, worktreeID) key for workspace maps
     WorktreeConfig.swift      Decoder for .muxy/worktree.json setup commands
-    TerminalPaneState.swift   Per-pane terminal state, including startup commands for terminal editors
+    TerminalPaneState.swift   Per-pane terminal state, startup commands, and remote reconnect lifecycle
     TerminalSearchState.swift Terminal find-in-page state
     TerminalQuickSelectState.swift Keyboard quick-select match state and label generation
   Services/
@@ -95,6 +95,9 @@ Muxy/
     WorktreePersistence.swift JSON persistence for worktrees (one file per project)
     WorktreePathResolver.swift Shared local/remote worktree path planning
     ProjectOpenService.swift  Shared local/remote project creation flow used by commands and sidebar
+    RemoteProjectSessionCommand.swift  SSH/tmux startup command builder for remote terminal panes
+    RemoteSessionReconnectMonitor.swift  Wake/network monitor for reconnecting disconnected remote panes
+    RemoteSessionTerminator.swift  Explicit tmux cleanup for closed or removed remote terminal panes
     WorktreeSetupRunner.swift Dispatches .muxy/worktree.json setup commands to a new tab
     WorkspacePersistence.swift JSON persistence for workspaces
     JSONFilePersistence.swift Shared App Support directory helper
@@ -202,7 +205,16 @@ User action → AppState.dispatch() → WorkspaceReducer.reduce()
 - **Remote Projects**: `ProjectOpenService` can add either a local project chosen from `NSOpenPanel`
   or a remote project backed by SSH host + remote path fields. Remote projects persist the SSH
   destination in `projects.json`, create normal workspace snapshots, and restore terminal panes by
-  regenerating the SSH startup command from the stored host/path metadata. Quick Open works for
+  regenerating the SSH startup command from the stored host/path/session metadata. Remote terminal
+  panes use a stable per-pane session ID persisted in `TerminalTabSnapshot`, derive a tmux session
+  name from project/worktree/session identity, and launch through an SSH keepalive/retry wrapper that
+  attaches with `tmux new-session -A` when tmux is available. SSH command exit for a remote pane is
+  treated as a recoverable disconnected state in `TerminalPaneState`, not as a tab close, so transient
+  sleep or network loss does not remove tabs, splits, workspace state, worktrees, or project metadata.
+  `RemoteSessionReconnectMonitor` asks disconnected remote panes to reconnect on wake or network
+  restoration, and the terminal overlay provides a manual reconnect action. Explicit tab, area,
+  worktree, or project removal queues `RemoteSessionTerminator` cleanup so the corresponding remote
+  tmux sessions are killed instead of being left behind. Quick Open works for
   remote projects by running the same filename search over SSH and opening the selected file through
   the configured terminal editor command on the remote shell. Source Control also works for remote
   projects by routing git and gh commands through SSH from the same VCS state model used for local

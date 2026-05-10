@@ -33,6 +33,10 @@ final class TerminalViewRegistry {
         view.tearDown()
     }
 
+    func restartSession(for paneID: UUID) {
+        views[paneID]?.restartSession()
+    }
+
     func needsConfirmQuit(for paneID: UUID) -> Bool {
         views[paneID]?.needsConfirmQuit() ?? false
     }
