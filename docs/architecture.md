@@ -208,7 +208,8 @@ User action → AppState.dispatch() → WorkspaceReducer.reduce()
   regenerating the SSH startup command from the stored host/path/session metadata. Remote terminal
   panes use a stable per-pane session ID persisted in `TerminalTabSnapshot`, derive a tmux session
   name from project/worktree/session identity, and launch through an SSH keepalive/retry wrapper that
-  attaches with `tmux new-session -A` when tmux is available. SSH command exit for a remote pane is
+  creates or attaches a tmux session when tmux is available. Muxy applies per-session tmux options for
+  mouse scrollback, a 1,000,000-line history limit, and dim status styling. SSH command exit for a remote pane is
   treated as a recoverable disconnected state in `TerminalPaneState`, not as a tab close, so transient
   sleep or network loss does not remove tabs, splits, workspace state, worktrees, or project metadata.
   `RemoteSessionReconnectMonitor` asks disconnected remote panes to reconnect on wake or network

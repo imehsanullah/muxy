@@ -63,6 +63,8 @@ enum RemoteProjectSessionCommand {
         let displayName = ShellCommandEscaping.escape(displayName(sessionName: sessionName))
         let tmuxCommand = [
             "tmux has-session -t \(escapedSession) 2>/dev/null || tmux new-session -d -s \(escapedSession) -c \(ShellCommandEscaping.escape(remotePath)) \(ShellCommandEscaping.escape(remoteCommand))",
+            "tmux set-option -t \(escapedSession) mouse on",
+            "tmux set-option -t \(escapedSession) history-limit 1000000",
             "tmux set-option -t \(escapedSession) status-style \(ShellCommandEscaping.escape("fg=colour238,bg=default"))",
             "tmux set-option -t \(escapedSession) status-left \(displayName)",
             "tmux set-window-option -t \(escapedSession) window-status-style \(ShellCommandEscaping.escape("fg=colour238,bg=default"))",
