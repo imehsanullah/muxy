@@ -536,7 +536,7 @@ final class RemoteServerDelegate: MuxyRemoteServerDelegate {
         guard !trimmedBranch.isEmpty else {
             throw RemoteVCSError.invalidInput("Branch name is required.")
         }
-        let slug = Self.worktreeSlug(from: trimmedName)
+        let slug = WorktreeLocationResolver.sanitizedDirectoryName(from: trimmedName)
         let worktreeDirectory = if project.isRemote {
             WorktreePathResolver.path(for: project, name: trimmedName)
         } else {

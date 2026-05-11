@@ -165,9 +165,11 @@ struct WorkspaceReducerTests {
         let action = AppState.Action.removeWorktree(
             projectID: projectID,
             worktreeID: worktreeID,
-            replacementWorktreeID: replacementID,
-            replacementWorktreePath: "/tmp/replacement",
-            replacementRemoteHost: nil
+            replacement: WorktreeReplacement(
+                id: replacementID,
+                path: "/tmp/replacement",
+                remoteHost: nil
+            )
         )
         let effects = WorkspaceReducer.reduce(action: action, state: &state)
 
@@ -186,9 +188,7 @@ struct WorkspaceReducerTests {
         let action = AppState.Action.removeWorktree(
             projectID: projectID,
             worktreeID: worktreeID,
-            replacementWorktreeID: nil,
-            replacementWorktreePath: nil,
-            replacementRemoteHost: nil
+            replacement: nil
         )
         _ = WorkspaceReducer.reduce(action: action, state: &state)
 

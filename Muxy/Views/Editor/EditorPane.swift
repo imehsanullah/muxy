@@ -238,7 +238,8 @@ struct EditorPane: View {
             foreground: palette.foreground,
             accent: palette.accent,
             fontFamilyCSS: editorSettings.resolvedMarkdownPreviewFontFamilyCSS,
-            fontScale: editorSettings.markdownPreviewFontScale
+            fontScale: editorSettings.markdownPreviewFontScale,
+            syntaxColors: SyntaxTheme.colors(from: palette)
         )
     }
 

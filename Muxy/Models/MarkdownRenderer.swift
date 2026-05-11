@@ -89,6 +89,23 @@ enum MarkdownRenderer {
         let accent: NSColor
         let fontFamilyCSS: String
         let fontScale: CGFloat
+        let syntaxColors: [SyntaxScope: NSColor]
+
+        init(
+            background: NSColor,
+            foreground: NSColor,
+            accent: NSColor,
+            fontFamilyCSS: String,
+            fontScale: CGFloat,
+            syntaxColors: [SyntaxScope: NSColor] = [:]
+        ) {
+            self.background = background
+            self.foreground = foreground
+            self.accent = accent
+            self.fontFamilyCSS = fontFamilyCSS
+            self.fontScale = fontScale
+            self.syntaxColors = syntaxColors
+        }
     }
 
     @MainActor
@@ -385,7 +402,11 @@ enum MarkdownRenderer {
         let mermaidBaseTheme = isDarkPreview ? "dark" : "default"
         let colorScheme = isDarkPreview ? "dark" : "light"
         let codeBackground = blend(foreground: palette.foreground, background: palette.background, amount: 0.08)
-        let syntaxCSS = SyntaxHTMLRenderer.cssStylesheet(background: codeBackground, foreground: palette.foreground)
+        let syntaxCSS = SyntaxHTMLRenderer.cssStylesheet(
+            background: codeBackground,
+            foreground: palette.foreground,
+            syntaxColors: palette.syntaxColors
+        )
         let escapedSyntaxCSS = syntaxCSS
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "`", with: "\\`")

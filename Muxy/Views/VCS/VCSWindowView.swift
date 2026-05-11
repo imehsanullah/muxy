@@ -12,8 +12,12 @@ struct VCSWindowView: View {
         return projectStore.projects.first { $0.id == pid }
     }
 
+    private var colorScheme: ColorScheme {
+        _ = backgroundService.version
+        return MuxyTheme.colorScheme
+    }
+
     var body: some View {
-        let _ = backgroundService.version
         Group {
             if let state = activeState {
                 VCSTabView(state: state, focused: true, onFocus: {})
@@ -26,7 +30,7 @@ struct VCSWindowView: View {
         }
         .frame(minWidth: 500, minHeight: 400)
         .background(AppBackgroundView())
-        .preferredColorScheme(MuxyTheme.colorScheme)
+        .preferredColorScheme(colorScheme)
         .onAppear {
             synchronizeState()
         }

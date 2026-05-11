@@ -100,7 +100,7 @@ struct WorktreeStoreTests {
         ])
         let store = WorktreeStore(
             persistence: persistence,
-            listGitWorktrees: gitService.listWorktrees,
+            listGitWorktrees: gitService.listWorktreesForProject,
             projects: [project]
         )
 
@@ -152,7 +152,7 @@ struct WorktreeStoreTests {
         ])
         let store = WorktreeStore(
             persistence: persistence,
-            listGitWorktrees: gitService.listWorktrees,
+            listGitWorktrees: gitService.listWorktreesForProject,
             projects: [project]
         )
 
@@ -192,7 +192,7 @@ struct WorktreeStoreTests {
         ])
         let store = WorktreeStore(
             persistence: persistence,
-            listGitWorktrees: gitService.listWorktrees,
+            listGitWorktrees: gitService.listWorktreesForProject,
             projects: [project]
         )
 
@@ -248,7 +248,7 @@ struct WorktreeStoreTests {
         ])
         let store = WorktreeStore(
             persistence: persistence,
-            listGitWorktrees: gitService.listWorktrees,
+            listGitWorktrees: gitService.listWorktreesForProject,
             projects: [project]
         )
 
@@ -305,7 +305,7 @@ struct WorktreeStoreTests {
         ])
         let store = WorktreeStore(
             persistence: persistence,
-            listGitWorktrees: gitService.listWorktrees,
+            listGitWorktrees: gitService.listWorktreesForProject,
             projects: [project]
         )
 
@@ -349,7 +349,7 @@ struct WorktreeStoreTests {
         ])
         let store = WorktreeStore(
             persistence: persistence,
-            listGitWorktrees: gitService.listWorktrees,
+            listGitWorktrees: gitService.listWorktreesForProject,
             projects: [project]
         )
 
@@ -380,7 +380,7 @@ struct WorktreeStoreTests {
         )
         let store = WorktreeStore(
             persistence: persistence,
-            listGitWorktrees: GitWorktreeListingStub(recordsByRepoPath: [:]).listWorktrees,
+            listGitWorktrees: GitWorktreeListingStub(recordsByRepoPath: [:]).listWorktreesForProject,
             projects: [project]
         )
         _ = VCSStateStore.shared.state(for: removable.path)
@@ -411,7 +411,7 @@ struct WorktreeStoreTests {
         )
         let store = WorktreeStore(
             persistence: persistence,
-            listGitWorktrees: GitWorktreeListingStub(recordsByRepoPath: [:]).listWorktrees,
+            listGitWorktrees: GitWorktreeListingStub(recordsByRepoPath: [:]).listWorktreesForProject,
             projects: [project]
         )
 
@@ -468,7 +468,11 @@ private final class WorktreePersistenceStub: WorktreePersisting {
 private struct GitWorktreeListingStub: GitWorktreeListing {
     let recordsByRepoPath: [String: [GitWorktreeRecord]]
 
-    func listWorktrees(repoPath: String) async throws -> [GitWorktreeRecord] {
+    func listWorktreesForProject(_ project: Project) async throws -> [GitWorktreeRecord] {
+        try await listWorktrees(repoPath: project.path, sshDestination: project.remoteHost)
+    }
+
+    func listWorktrees(repoPath: String, sshDestination: String?) async throws -> [GitWorktreeRecord] {
         recordsByRepoPath[repoPath] ?? []
     }
 }

@@ -51,7 +51,8 @@ actor GitWorktreeService: GitWorktreeListing {
             repoPath: path,
             sshDestination: sshDestination,
             arguments: ["rev-parse", "--is-inside-work-tree"]
-        ) else {
+        )
+        else {
             return false
         }
         return result.status == 0 && result.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == "true"

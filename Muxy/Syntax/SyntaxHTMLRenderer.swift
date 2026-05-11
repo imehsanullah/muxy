@@ -49,16 +49,19 @@ enum SyntaxHTMLRenderer {
     }
 
     @MainActor
-    static func cssStylesheet(background: NSColor, foreground: NSColor) -> String {
-        let allScopes: [SyntaxScope] = [
-            .keyword, .storage, .type, .builtin, .constant, .string, .stringEscape,
-            .number, .comment, .docComment, .function, .variable, .attribute,
-            .preprocessor, .op, .punctuation, .tag, .attributeName, .attributeValue,
-            .regex, .heading, .link, .emphasis,
-        ]
+    static func cssStylesheet(
+        background: NSColor,
+        foreground: NSColor,
+        syntaxColors: [SyntaxScope: NSColor] = [:]
+    ) -> String {
         var css = ""
-        for scope in allScopes {
-            let resolved = htmlColor(for: scope, foreground: foreground, background: background)
+        for scope in SyntaxScope.allCases {
+            let resolved = htmlColor(
+                for: scope,
+                foreground: foreground,
+                background: background,
+                syntaxColors: syntaxColors
+            )
             let hex = colorHex(flatten(resolved, against: background))
             css += ".\(cssClass(for: scope)) { color: #\(hex); }\n"
         }
@@ -69,14 +72,15 @@ enum SyntaxHTMLRenderer {
     private static func htmlColor(
         for scope: SyntaxScope,
         foreground: NSColor,
-        background: NSColor
+        background: NSColor,
+        syntaxColors: [SyntaxScope: NSColor]
     ) -> NSColor {
         switch scope {
         case .comment,
              .docComment:
             blend(foreground: foreground, background: background, amount: 0.55)
         default:
-            SyntaxTheme.color(for: scope)
+            syntaxColors[scope] ?? foreground
         }
     }
 

@@ -10,9 +10,22 @@ struct WorkspaceState {
     var keepProjectOpenWhenEmpty: Bool = false
 }
 
-struct RemoteSessionCleanup: Hashable, Sendable {
+struct RemoteSessionCleanup: Hashable {
     let sshDestination: String
     let sessionName: String
+}
+
+struct WorkspaceSelection {
+    let projectID: UUID
+    let worktreeID: UUID
+    let worktreePath: String
+    let remoteHost: String?
+}
+
+struct WorktreeReplacement {
+    let id: UUID
+    let path: String
+    let remoteHost: String?
 }
 
 @MainActor
@@ -37,10 +50,12 @@ enum WorkspaceReducer {
         case let .selectProject(projectID, worktreeID, worktreePath, remoteHost),
              let .selectWorktree(projectID, worktreeID, worktreePath, remoteHost):
             ProjectLifecycleReducer.selectProject(
-                projectID: projectID,
-                worktreeID: worktreeID,
-                worktreePath: worktreePath,
-                remoteHost: remoteHost,
+                WorkspaceSelection(
+                    projectID: projectID,
+                    worktreeID: worktreeID,
+                    worktreePath: worktreePath,
+                    remoteHost: remoteHost
+                ),
                 state: &state,
                 effects: &effects
             )
@@ -48,23 +63,7 @@ enum WorkspaceReducer {
         case let .removeProject(projectID):
             ProjectLifecycleReducer.removeProject(projectID: projectID, state: &state, effects: &effects)
 
-        case let .removeWorktree(
-            projectID,
-            worktreeID,
-            replacementWorktreeID,
-            replacementWorktreePath,
-            replacementRemoteHost
-        ):
-            let replacement: ProjectLifecycleReducer.WorktreeReplacement? =
-                if let replacementWorktreeID, let replacementWorktreePath {
-                    ProjectLifecycleReducer.WorktreeReplacement(
-                        id: replacementWorktreeID,
-                        path: replacementWorktreePath,
-                        remoteHost: replacementRemoteHost
-                    )
-                } else {
-                    nil
-                }
+        case let .removeWorktree(projectID, worktreeID, replacement):
             ProjectLifecycleReducer.removeWorktree(
                 projectID: projectID,
                 worktreeID: worktreeID,

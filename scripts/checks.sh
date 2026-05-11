@@ -127,6 +127,20 @@ fi
 
 printf "\n"
 
+swift_test_args=()
+developer_dir=$(xcode-select -p 2>/dev/null || true)
+testing_framework_dir="$developer_dir/Library/Developer/Frameworks"
+testing_interop_dir="$developer_dir/Library/Developer/usr/lib"
+
+if [ -d "$testing_framework_dir/Testing.framework" ]; then
+  swift_test_args+=(-Xswiftc -F -Xswiftc "$testing_framework_dir")
+  swift_test_args+=(-Xlinker -rpath -Xlinker "$testing_framework_dir")
+fi
+
+if [ -f "$testing_interop_dir/lib_TestingInterop.dylib" ]; then
+  swift_test_args+=(-Xlinker -rpath -Xlinker "$testing_interop_dir")
+fi
+
 failed=0
 
 if [ "$FIX" -eq 1 ]; then
@@ -147,7 +161,7 @@ if [ "$failed" -eq 0 ]; then
 fi
 
 if [ "$failed" -eq 0 ]; then
-  run_step "Test" swift test || failed=1
+  run_step "Test" swift test "${swift_test_args[@]}" || failed=1
 fi
 
 printf "\n"

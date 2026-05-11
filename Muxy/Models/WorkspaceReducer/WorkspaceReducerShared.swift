@@ -17,16 +17,13 @@ enum WorkspaceReducerShared {
     }
 
     static func ensureWorkspaceExists(
-        projectID: UUID,
-        worktreeID: UUID,
-        worktreePath: String,
-        remoteHost: String?,
+        _ selection: WorkspaceSelection,
         state: inout WorkspaceState,
         effects: inout WorkspaceSideEffects
     ) {
-        let key = WorktreeKey(projectID: projectID, worktreeID: worktreeID)
+        let key = WorktreeKey(projectID: selection.projectID, worktreeID: selection.worktreeID)
         guard state.workspaceRoots[key] == nil else { return }
-        let area = TabArea(projectPath: worktreePath, remoteHost: remoteHost)
+        let area = TabArea(projectPath: selection.worktreePath, remoteHost: selection.remoteHost)
         state.workspaceRoots[key] = .tabArea(area)
         state.focusedAreaID[key] = area.id
     }

@@ -10,7 +10,7 @@ final class RemoteSessionReconnectMonitor: NSObject, @unchecked Sendable {
     private var started = false
     private var wasUnavailable = false
 
-    private override init() {
+    override private init() {
         super.init()
     }
 

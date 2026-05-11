@@ -27,11 +27,11 @@ private enum RemoteDirectoryBrowserError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .launchFailed(message):
-            return message
+            message
         case let .commandFailed(message):
-            return message
+            message
         case .invalidResponse:
-            return "The remote server returned an invalid directory listing."
+            "The remote server returned an invalid directory listing."
         }
     }
 }
@@ -98,11 +98,10 @@ private enum SSHConfigHostLoader {
             .flatMap { token in
                 let rawPattern = String(token)
                 let expandedPattern = expandTilde(rawPattern)
-                let resolvedPattern: String
-                if expandedPattern.hasPrefix("/") {
-                    resolvedPattern = expandedPattern
+                let resolvedPattern: String = if expandedPattern.hasPrefix("/") {
+                    expandedPattern
                 } else {
-                    resolvedPattern = directory.appendingPathComponent(expandedPattern).path
+                    directory.appendingPathComponent(expandedPattern).path
                 }
                 return expandGlob(resolvedPattern).map { URL(fileURLWithPath: $0) }
             }
@@ -233,7 +232,9 @@ enum RemoteProjectPicker {
 }
 
 @MainActor
-private final class RemoteProjectPickerController: NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate, NSComboBoxDelegate {
+private final class RemoteProjectPickerController: NSObject, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate,
+    NSComboBoxDelegate
+{
     private let nameField = NSTextField(string: "")
     private let hostComboBox = NSComboBox()
     private let pathField = NSTextField(string: "")
@@ -331,7 +332,8 @@ private final class RemoteProjectPickerController: NSObject, NSWindowDelegate, N
         updateButtons()
     }
 
-    @objc private func confirmSelection() {
+    @objc
+    private func confirmSelection() {
         let sshDestination = hostComboBox.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let remotePath = pathField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -362,24 +364,29 @@ private final class RemoteProjectPickerController: NSObject, NSWindowDelegate, N
         window.orderOut(nil)
     }
 
-    @objc private func cancelSelection() {
+    @objc
+    private func cancelSelection() {
         NSApp.stopModal(withCode: .cancel)
         window.orderOut(nil)
     }
 
-    @objc private func hostSelectionChanged() {
+    @objc
+    private func hostSelectionChanged() {
         browseHome()
     }
 
-    @objc private func reloadCurrentPath() {
+    @objc
+    private func reloadCurrentPath() {
         browse(path: pathField.stringValue)
     }
 
-    @objc private func browseHome() {
+    @objc
+    private func browseHome() {
         browse(path: nil)
     }
 
-    @objc private func browseParentDirectory() {
+    @objc
+    private func browseParentDirectory() {
         let current = pathField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !current.isEmpty else {
             browse(path: nil)
@@ -389,14 +396,16 @@ private final class RemoteProjectPickerController: NSObject, NSWindowDelegate, N
         browse(path: parent.isEmpty ? "/" : parent)
     }
 
-    @objc private func browseSelectedRow() {
+    @objc
+    private func browseSelectedRow() {
         guard tableView.selectedRow >= 0, tableView.selectedRow < entries.count else { return }
         let entry = entries[tableView.selectedRow]
         guard entry.isDirectory else { return }
         browse(path: entry.path)
     }
 
-    @objc private func chooseSelectedRow() {
+    @objc
+    private func chooseSelectedRow() {
         guard tableView.selectedRow >= 0, tableView.selectedRow < entries.count else { return }
         let entry = entries[tableView.selectedRow]
         guard entry.isDirectory else { return }
@@ -424,12 +433,17 @@ private final class RemoteProjectPickerController: NSObject, NSWindowDelegate, N
         progressIndicator.controlSize = .small
         progressIndicator.isDisplayedWhenStopped = false
 
-        let descriptionLabel = NSTextField(labelWithString: "Choose an SSH host from ~/.ssh/config or enter one manually, then browse to the remote project folder.")
+        let descriptionLabel =
+            NSTextField(
+                labelWithString: "Choose an SSH host from ~/.ssh/config or enter one manually, then browse to the remote project folder."
+            )
         descriptionLabel.textColor = .secondaryLabelColor
         descriptionLabel.lineBreakMode = .byWordWrapping
         descriptionLabel.maximumNumberOfLines = 0
 
-        let helperLabel = NSTextField(labelWithString: "Select a folder to stage it as the project. Use Browse Into to go deeper, or Add Project to add the selected folder.")
+        let helperText = "Select a folder to stage it as the project. " +
+            "Use Browse Into to go deeper, or Add Project to add the selected folder."
+        let helperLabel = NSTextField(labelWithString: helperText)
         helperLabel.textColor = .secondaryLabelColor
         helperLabel.font = .systemFont(ofSize: 11)
 
@@ -582,7 +596,10 @@ private final class RemoteProjectPickerController: NSObject, NSWindowDelegate, N
                 tableView.deselectAll(nil)
                 pathField.stringValue = listing.resolvedPath
                 updateNameFieldForCurrentPath()
-                presentStatus("Loaded \(listing.entries.count) item\(listing.entries.count == 1 ? "" : "s") from \(sshDestination).", isError: false)
+                presentStatus(
+                    "Loaded \(listing.entries.count) item\(listing.entries.count == 1 ? "" : "s") from \(sshDestination).",
+                    isError: false
+                )
                 setLoading(false)
             } catch {
                 guard !Task.isCancelled else { return }

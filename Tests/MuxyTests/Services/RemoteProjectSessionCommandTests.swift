@@ -43,8 +43,8 @@ struct RemoteProjectSessionCommandTests {
             remoteCommand: "exec ${SHELL:-/bin/zsh} -l"
         )
 
-        #expect(command.contains("tmux set-option -t '\\''muxy-test'\\'' mouse on"))
-        #expect(command.contains("tmux set-option -t '\\''muxy-test'\\'' history-limit 1000000"))
+        #expect(command.contains("tmux set-option -t muxy-test mouse on"))
+        #expect(command.contains("tmux set-option -t muxy-test history-limit 1000000"))
     }
 
     @Test("command styles tmux status bar with default background and grey text")
@@ -56,10 +56,11 @@ struct RemoteProjectSessionCommandTests {
             remoteCommand: "exec ${SHELL:-/bin/zsh} -l"
         )
 
-        #expect(command.contains("status-style '\\''fg=colour238,bg=default'\\''"))
-        #expect(command.contains("status-left '\\''muxy-5678 '\\''"))
-        #expect(command.contains("window-status-style '\\''fg=colour238,bg=default'\\''"))
-        #expect(command.contains("window-status-current-style '\\''fg=colour240,bg=default'\\''"))
+        #expect(command.contains("status-style fg=colour238,bg=default"))
+        #expect(command.contains("status-left"))
+        #expect(command.contains("muxy-5678"))
+        #expect(command.contains("window-status-style fg=colour238,bg=default"))
+        #expect(command.contains("window-status-current-style fg=colour240,bg=default"))
     }
 
     @Test("command falls back to plain remote shell when tmux is missing")
@@ -72,7 +73,9 @@ struct RemoteProjectSessionCommandTests {
         )
 
         #expect(command.contains("if command -v tmux >/dev/null 2>&1; then tmux has-session"))
-        #expect(command.contains("else cd -- '\\''/srv/project'\\'' && exec ${SHELL:-/bin/zsh} -l; fi"))
+        #expect(command.contains("else cd --"))
+        #expect(command.contains("/srv/project"))
+        #expect(command.contains("exec ${SHELL:-/bin/zsh} -l; fi"))
     }
 
     @Test("session name is stable and sanitized")

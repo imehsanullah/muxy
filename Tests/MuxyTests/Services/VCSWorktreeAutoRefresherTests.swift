@@ -84,7 +84,7 @@ struct VCSWorktreeAutoRefresherTests {
             persistence: WorktreePersistenceStub(initial: [
                 project.id: [Worktree(name: project.name, path: project.path, isPrimary: true)]
             ]),
-            listGitWorktrees: gitService.listWorktrees,
+            listGitWorktrees: gitService.listWorktreesForProject,
             projects: [project]
         )
         let appState = AppState(
@@ -176,8 +176,8 @@ private final class TrackingGitWorktreeListingStub: Sendable {
     }
 
     @Sendable
-    func listWorktrees(repoPath: String) async throws -> [GitWorktreeRecord] {
-        await tracker.record(repoPath: repoPath)
+    func listWorktreesForProject(_ project: Project) async throws -> [GitWorktreeRecord] {
+        await tracker.record(repoPath: project.path)
     }
 
     func callCount(forRepoPath repoPath: String) async -> Int {

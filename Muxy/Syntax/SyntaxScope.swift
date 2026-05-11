@@ -1,6 +1,6 @@
 import AppKit
 
-enum SyntaxScope: Hashable {
+enum SyntaxScope: Hashable, CaseIterable {
     case keyword
     case storage
     case type
@@ -61,7 +61,16 @@ enum SyntaxTheme {
     }
 
     private static func resolve(scope: SyntaxScope) -> NSColor {
-        let palette = EditorThemePalette.active
+        resolve(scope: scope, palette: EditorThemePalette.active)
+    }
+
+    static func colors(from palette: EditorThemePalette) -> [SyntaxScope: NSColor] {
+        Dictionary(uniqueKeysWithValues: SyntaxScope.allCases.map { scope in
+            (scope, resolve(scope: scope, palette: palette))
+        })
+    }
+
+    private static func resolve(scope: SyntaxScope, palette: EditorThemePalette) -> NSColor {
         let fg = palette.foreground
 
         switch scope {

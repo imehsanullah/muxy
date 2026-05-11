@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
-import SwiftUI
 import os
+import SwiftUI
 
 private let logger = Logger(subsystem: "app.muxy", category: "AppBackgroundService")
 
@@ -315,9 +315,8 @@ final class AppBackgroundService {
     }
 
     private func syncGhosttyConfig(reloadGhostty: Bool) {
-        let updates: [String: String?]
-        if isEnabled, currentImagePath != nil {
-            updates = [
+        let updates: [String: String?] = if isEnabled, currentImagePath != nil {
+            [
                 "background-image": nil,
                 "background-image-opacity": nil,
                 "background-image-position": nil,
@@ -327,7 +326,7 @@ final class AppBackgroundService {
                 "background-opacity-cells": "true",
             ]
         } else {
-            updates = [
+            [
                 "background-image": nil,
                 "background-image-opacity": nil,
                 "background-image-position": nil,
@@ -373,7 +372,10 @@ final class AppBackgroundService {
                 .map(\.path)
                 .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         } catch {
-            logger.error("Failed to enumerate background folder \(trimmed, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            logger
+                .error(
+                    "Failed to enumerate background folder \(trimmed, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                )
             return []
         }
     }

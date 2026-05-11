@@ -2,27 +2,15 @@ import Foundation
 
 @MainActor
 enum ProjectLifecycleReducer {
-    struct WorktreeReplacement {
-        let id: UUID
-        let path: String
-        let remoteHost: String?
-    }
-
     static func selectProject(
-        projectID: UUID,
-        worktreeID: UUID,
-        worktreePath: String,
-        remoteHost: String?,
+        _ selection: WorkspaceSelection,
         state: inout WorkspaceState,
         effects: inout WorkspaceSideEffects
     ) {
-        state.activeProjectID = projectID
-        state.activeWorktreeID[projectID] = worktreeID
+        state.activeProjectID = selection.projectID
+        state.activeWorktreeID[selection.projectID] = selection.worktreeID
         WorkspaceReducerShared.ensureWorkspaceExists(
-            projectID: projectID,
-            worktreeID: worktreeID,
-            worktreePath: worktreePath,
-            remoteHost: remoteHost,
+            selection,
             state: &state,
             effects: &effects
         )
@@ -77,10 +65,12 @@ enum ProjectLifecycleReducer {
         if let replacement {
             state.activeWorktreeID[projectID] = replacement.id
             WorkspaceReducerShared.ensureWorkspaceExists(
-                projectID: projectID,
-                worktreeID: replacement.id,
-                worktreePath: replacement.path,
-                remoteHost: replacement.remoteHost,
+                WorkspaceSelection(
+                    projectID: projectID,
+                    worktreeID: replacement.id,
+                    worktreePath: replacement.path,
+                    remoteHost: replacement.remoteHost
+                ),
                 state: &state,
                 effects: &effects
             )
@@ -125,10 +115,12 @@ enum ProjectLifecycleReducer {
         state.activeProjectID = project.id
         state.activeWorktreeID[project.id] = worktree.id
         WorkspaceReducerShared.ensureWorkspaceExists(
-            projectID: project.id,
-            worktreeID: worktree.id,
-            worktreePath: worktree.path,
-            remoteHost: project.remoteHost,
+            WorkspaceSelection(
+                projectID: project.id,
+                worktreeID: worktree.id,
+                worktreePath: worktree.path,
+                remoteHost: project.remoteHost
+            ),
             state: &state,
             effects: &effects
         )

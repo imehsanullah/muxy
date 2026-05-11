@@ -59,19 +59,28 @@ enum RemoteProjectSessionCommand {
     }
 
     private static func remoteSessionCommand(remotePath: String, sessionName: String, remoteCommand: String) -> String {
-        let escapedSession = ShellCommandEscaping.escape(sessionName)
-        let displayName = ShellCommandEscaping.escape(displayName(sessionName: sessionName))
+        let safeSessionName = sanitizedSessionName(sessionName)
+        let escapedPath = ShellCommandEscaping.escape(remotePath)
+        let escapedCommand = ShellCommandEscaping.escape(remoteCommand)
+        let displayName = ShellCommandEscaping.escape(displayName(sessionName: safeSessionName))
+        let dimStyle = "fg=colour238,bg=default"
+        let currentStyle = "fg=colour240,bg=default"
+        let windowOption = "tmux set-window-option -t \(safeSessionName)"
+        let createSessionCommand = [
+            "tmux has-session -t \(safeSessionName) 2>/dev/null",
+            "tmux new-session -d -s \(safeSessionName) -c \(escapedPath) \(escapedCommand)",
+        ].joined(separator: " || ")
         let tmuxCommand = [
-            "tmux has-session -t \(escapedSession) 2>/dev/null || tmux new-session -d -s \(escapedSession) -c \(ShellCommandEscaping.escape(remotePath)) \(ShellCommandEscaping.escape(remoteCommand))",
-            "tmux set-option -t \(escapedSession) mouse on",
-            "tmux set-option -t \(escapedSession) history-limit 1000000",
-            "tmux set-option -t \(escapedSession) status-style \(ShellCommandEscaping.escape("fg=colour238,bg=default"))",
-            "tmux set-option -t \(escapedSession) status-left \(displayName)",
-            "tmux set-window-option -t \(escapedSession) window-status-style \(ShellCommandEscaping.escape("fg=colour238,bg=default"))",
-            "tmux set-window-option -t \(escapedSession) window-status-current-style \(ShellCommandEscaping.escape("fg=colour240,bg=default"))",
-            "exec tmux attach-session -t \(escapedSession)",
+            createSessionCommand,
+            "tmux set-option -t \(safeSessionName) mouse on",
+            "tmux set-option -t \(safeSessionName) history-limit 1000000",
+            "tmux set-option -t \(safeSessionName) status-style \(dimStyle)",
+            "tmux set-option -t \(safeSessionName) status-left \(displayName)",
+            "\(windowOption) window-status-style \(dimStyle)",
+            "\(windowOption) window-status-current-style \(currentStyle)",
+            "exec tmux attach-session -t \(safeSessionName)",
         ].joined(separator: "; ")
-        let fallbackCommand = "cd -- \(ShellCommandEscaping.escape(remotePath)) && \(remoteCommand)"
+        let fallbackCommand = ["cd -- \(escapedPath)", remoteCommand].joined(separator: " && ")
         return "if command -v tmux >/dev/null 2>&1; then \(tmuxCommand); else \(fallbackCommand); fi"
     }
 

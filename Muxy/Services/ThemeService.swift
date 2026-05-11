@@ -278,7 +278,11 @@ final class ThemeService {
                 withIntermediateDirectories: true
             )
         } catch {
-            logger.error("Failed to create Ghostty theme directory at \(userThemesDirectory, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            let message = error.localizedDescription
+            logger
+                .error(
+                    "Failed to create Ghostty theme directory at \(userThemesDirectory, privacy: .public): \(message, privacy: .public)"
+                )
             return
         }
 
@@ -298,7 +302,12 @@ final class ThemeService {
                 }
                 try FileManager.default.copyItem(at: source, to: URL(fileURLWithPath: destination))
             } catch {
-                logger.error("Failed to install bundled theme \(source.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                let name = source.lastPathComponent
+                let message = error.localizedDescription
+                logger
+                    .error(
+                        "Failed to install bundled theme \(name, privacy: .public): \(message, privacy: .public)"
+                    )
             }
         }
     }
@@ -368,7 +377,8 @@ final class ThemeService {
                 at: directory,
                 includingPropertiesForKeys: [.isRegularFileKey],
                 options: [.skipsHiddenFiles]
-            ) else { continue }
+            )
+            else { continue }
 
             for file in files {
                 guard seenPaths.insert(file.path).inserted else { continue }

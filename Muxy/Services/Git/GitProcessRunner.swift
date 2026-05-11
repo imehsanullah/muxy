@@ -149,8 +149,8 @@ enum GitProcessRunner {
         lineLimit: Int? = nil,
         signpostName: StaticString = "remote-shell"
     ) async throws -> GitProcessResult {
-        try await dispatch {
-            try runProcessSync(
+        try await runProcess(
+            ProcessSpec(
                 executable: "/usr/bin/env",
                 arguments: [
                     "ssh",
@@ -165,7 +165,7 @@ enum GitProcessRunner {
                 lineLimit: lineLimit,
                 signpostName: signpostName
             )
-        }
+        )
     }
 
     static func offMain<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {

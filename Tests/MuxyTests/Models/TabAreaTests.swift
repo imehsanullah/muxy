@@ -110,10 +110,10 @@ struct TabAreaTests {
         #expect(area.activeTab?.content.pane?.startupCommand == "vim +10 /tmp/test/file.swift")
     }
 
-    @Test("shellEscapedPath does not escape simple paths")
+    @Test("shellEscapedPath quotes simple paths")
     func shellEscapedPathSimple() {
         let command = TabArea.editorLaunchCommand(command: "vim", filePath: "/tmp/test/file.swift")
-        #expect(command == "vim /tmp/test/file.swift")
+        #expect(command == "vim '/tmp/test/file.swift'")
     }
 
     @Test("shellEscapedPath escapes paths with spaces")

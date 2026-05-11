@@ -49,3 +49,4 @@
 --disable organizeDeclarations
 --disable wrapPropertyBodies
 --disable redundantStaticSelf
+--disable environmentEntry

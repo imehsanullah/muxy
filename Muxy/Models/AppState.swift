@@ -24,13 +24,7 @@ final class AppState {
         case selectProject(projectID: UUID, worktreeID: UUID, worktreePath: String, remoteHost: String?)
         case selectWorktree(projectID: UUID, worktreeID: UUID, worktreePath: String, remoteHost: String?)
         case removeProject(projectID: UUID)
-        case removeWorktree(
-            projectID: UUID,
-            worktreeID: UUID,
-            replacementWorktreeID: UUID?,
-            replacementWorktreePath: String?,
-            replacementRemoteHost: String?
-        )
+        case removeWorktree(projectID: UUID, worktreeID: UUID, replacement: WorktreeReplacement?)
         case createTab(projectID: UUID, areaID: UUID?)
         case createTabInDirectory(projectID: UUID, areaID: UUID?, directory: String)
         case createCommandTab(projectID: UUID, areaID: UUID?, name: String, command: String)
@@ -854,9 +848,7 @@ final class AppState {
         dispatch(.removeWorktree(
             projectID: projectID,
             worktreeID: worktree.id,
-            replacementWorktreeID: replacement?.id,
-            replacementWorktreePath: replacement?.path,
-            replacementRemoteHost: nil
+            replacement: replacement.map { WorktreeReplacement(id: $0.id, path: $0.path, remoteHost: nil) }
         ))
     }
 
@@ -865,9 +857,7 @@ final class AppState {
         dispatch(.removeWorktree(
             projectID: projectID,
             worktreeID: worktree.id,
-            replacementWorktreeID: replacement?.id,
-            replacementWorktreePath: replacement?.path,
-            replacementRemoteHost: remoteHost
+            replacement: replacement.map { WorktreeReplacement(id: $0.id, path: $0.path, remoteHost: remoteHost) }
         ))
     }
 }

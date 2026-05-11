@@ -42,6 +42,7 @@ struct TerminalPaneStateTests {
         )
 
         #expect(command?.contains("muxy-11111111-aaaaaaaa-12345678-1234-5678-1234-567812345678") == true)
-        #expect(command?.contains("tmux new-session -A") == true)
+        #expect(command?.contains("tmux has-session") == true)
+        #expect(command?.contains("tmux new-session -d") == true)
     }
 }
