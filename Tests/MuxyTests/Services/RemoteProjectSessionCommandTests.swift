@@ -28,6 +28,7 @@ struct RemoteProjectSessionCommandTests {
         #expect(command.contains("TCPKeepAlive=yes"))
         #expect(command.contains("while true; do"))
         #expect(command.contains("status=$?"))
+        #expect(command.contains("TERM=xterm-256color; export TERM"))
         #expect(command.contains("tmux has-session"))
         #expect(command.contains("tmux new-session -d"))
         #expect(command.contains("tmux attach-session"))

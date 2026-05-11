@@ -66,6 +66,7 @@ enum RemoteProjectSessionCommand {
         let dimStyle = "fg=colour238,bg=default"
         let currentStyle = "fg=colour240,bg=default"
         let windowOption = "tmux set-window-option -t \(safeSessionName)"
+        let terminalEnvironment = "TERM=xterm-256color; export TERM"
         let createSessionCommand = [
             "tmux has-session -t \(safeSessionName) 2>/dev/null",
             "tmux new-session -d -s \(safeSessionName) -c \(escapedPath) \(escapedCommand)",
@@ -81,7 +82,7 @@ enum RemoteProjectSessionCommand {
             "exec tmux attach-session -t \(safeSessionName)",
         ].joined(separator: "; ")
         let fallbackCommand = ["cd -- \(escapedPath)", remoteCommand].joined(separator: " && ")
-        return "if command -v tmux >/dev/null 2>&1; then \(tmuxCommand); else \(fallbackCommand); fi"
+        return "\(terminalEnvironment); if command -v tmux >/dev/null 2>&1; then \(tmuxCommand); else \(fallbackCommand); fi"
     }
 
     private static func displayName(sessionName: String) -> String {
