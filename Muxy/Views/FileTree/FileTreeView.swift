@@ -552,33 +552,39 @@ private struct FileTreeContextMenuContents: View {
     }
 
     var body: some View {
-        Button("New File") { commands.beginNewFile(in: path) }
-        Button("New Folder") { commands.beginNewFolder(in: path) }
-        if includesTargetActions {
-            Divider()
-            Button("Rename") { commands.beginRename(path: path) }
-                .disabled(targets.count > 1)
-            Button(targets.count > 1 ? "Delete \(targets.count) Items" : "Delete") {
-                commands.trash(paths: targets)
+        if !commands.isRemoteProject {
+            Button("New File") { commands.beginNewFile(in: path) }
+            Button("New Folder") { commands.beginNewFolder(in: path) }
+            if includesTargetActions {
+                Divider()
+                Button("Rename") { commands.beginRename(path: path) }
+                    .disabled(targets.count > 1)
+                Button(targets.count > 1 ? "Delete \(targets.count) Items" : "Delete") {
+                    commands.trash(paths: targets)
+                }
+                Divider()
+                Button(targets.count > 1 ? "Cut \(targets.count) Items" : "Cut") {
+                    commands.cutToClipboard(paths: targets)
+                }
+                Button(targets.count > 1 ? "Copy \(targets.count) Items" : "Copy") {
+                    commands.copyToClipboard(paths: targets)
+                }
             }
             Divider()
-            Button(targets.count > 1 ? "Cut \(targets.count) Items" : "Cut") {
-                commands.cutToClipboard(paths: targets)
-            }
-            Button(targets.count > 1 ? "Copy \(targets.count) Items" : "Copy") {
-                commands.copyToClipboard(paths: targets)
-            }
+            Button("Paste") { commands.paste(into: path) }
+                .disabled(!FileClipboard.hasContents)
         }
-        Divider()
-        Button("Paste") { commands.paste(into: path) }
-            .disabled(!FileClipboard.hasContents)
         if includesTargetActions {
             Divider()
             Button("Copy Path") { commands.copyAbsolutePath(path) }
             Button("Copy Relative Path") { commands.copyRelativePath(path) }
         }
-        Divider()
-        Button("Reveal in Finder") { commands.revealInFinder(path) }
+        if !commands.isRemoteProject || includesTargetActions {
+            Divider()
+        }
+        if !commands.isRemoteProject {
+            Button("Reveal in Finder") { commands.revealInFinder(path) }
+        }
         Button("Open in Terminal") { commands.openInTerminal(path: path) }
     }
 }
@@ -589,10 +595,11 @@ private struct FileTreeDropDelegate: DropDelegate {
     let commands: FileTreeCommands
 
     func validateDrop(info: DropInfo) -> Bool {
-        info.hasItemsConforming(to: [.fileURL])
+        !commands.isRemoteProject && info.hasItemsConforming(to: [.fileURL])
     }
 
     func dropEntered(info _: DropInfo) {
+        guard !commands.isRemoteProject else { return }
         state.dropHighlightPath = destinationPath
     }
 
@@ -603,6 +610,7 @@ private struct FileTreeDropDelegate: DropDelegate {
     }
 
     func performDrop(info: DropInfo) -> Bool {
+        guard !commands.isRemoteProject else { return false }
         state.dropHighlightPath = nil
         let providers = info.itemProviders(for: [.fileURL])
         guard !providers.isEmpty else { return false }

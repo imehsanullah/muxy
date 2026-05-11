@@ -9,6 +9,7 @@ final class FileTreeCommands {
     private let state: FileTreeState
     var openTerminal: (String) -> Void
     var onFileMoved: (String, String) -> Void
+    var isRemoteProject: Bool { state.remoteHost != nil }
 
     init(
         state: FileTreeState,
@@ -129,6 +130,9 @@ final class FileTreeCommands {
         let paths = state.pendingDeletePaths
         if paths.count > 1 { return "\(paths.count) items" }
         guard let path = paths.first else { return "file" }
+        if state.remoteHost != nil {
+            return state.entry(at: path)?.isDirectory == true ? "folder" : "file"
+        }
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: path, isDirectory: &isDir)
         return exists && isDir.boolValue ? "folder" : "file"
@@ -237,6 +241,12 @@ final class FileTreeCommands {
 
     private func resolveDirectoryContext(for path: String) -> String {
         let normalized = path.hasSuffix("/") ? String(path.dropLast()) : path
+        if state.remoteHost != nil {
+            let root = state.rootPath.hasSuffix("/") ? String(state.rootPath.dropLast()) : state.rootPath
+            if normalized == root { return normalized }
+            if state.entry(at: normalized)?.isDirectory == true { return normalized }
+            return (normalized as NSString).deletingLastPathComponent
+        }
         var isDir: ObjCBool = false
         if FileManager.default.fileExists(atPath: normalized, isDirectory: &isDir), isDir.boolValue {
             return normalized

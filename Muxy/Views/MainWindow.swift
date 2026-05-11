@@ -841,7 +841,7 @@ struct MainWindow: View {
                         appState.handleFileMoved(from: oldPath, to: newPath)
                     }
                 )
-                .id(treeState.rootPath)
+                .id("\(treeState.remoteHost ?? ""):\(treeState.rootPath)")
                 .frame(width: CGFloat(fileTreePanelWidth))
             }
         }
@@ -891,8 +891,13 @@ struct MainWindow: View {
     private func ensureFileTreeState(for project: Project) {
         guard let key = appState.activeWorktreeKey(for: project.id) else { return }
         let path = activeWorktreePath(for: project)
-        if let existing = fileTreeStates[key], existing.rootPath == path { return }
-        fileTreeStates[key] = FileTreeState(rootPath: path)
+        if let existing = fileTreeStates[key],
+           existing.rootPath == path,
+           existing.remoteHost == project.remoteHost
+        {
+            return
+        }
+        fileTreeStates[key] = FileTreeState(rootPath: path, remoteHost: project.remoteHost)
     }
 
     private var activeEditorState: EditorTabState? {

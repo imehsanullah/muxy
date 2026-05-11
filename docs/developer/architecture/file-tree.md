@@ -6,20 +6,20 @@ The file tree is a side panel mounted at the trailing edge of the main window �
 
 ```mermaid
 flowchart TB
-  Worktree[WorktreeKey] --> State[FileTreeState]
+  Worktree[WorktreeKey + remoteHost] --> State[FileTreeState]
   State -->|load children| Service[FileTreeService]
-  Service -->|git check-ignore| Git
-  Service -->|fallback prune list| FS[Filesystem]
-  FSWatcher[FileSystemWatcher<br/>FSEvents] --> State
-  Status[git status --porcelain=v1 -z] --> State
+  Service -->|local filesystem or SSH find| FS[Filesystem]
+  Service -->|git check-ignore local or SSH| Git
+  FSWatcher[FileSystemWatcher<br/>local FSEvents] --> State
+  Status[git status local or SSH] --> State
   State --> View[FileTreeView]
   View --> Commands[FileTreeCommands] --> Ops[FileSystemOperations<br/>off-main]
 ```
 
-- `FileTreeState` is per `WorktreeKey`, held by `MainWindow`.
-- `FileTreeService.loadChildren` is lazy and respects `.gitignore` via `git check-ignore --stdin`. Non-git folders fall back to a hardcoded prune list shared with `FileSearchService`.
+- `FileTreeState` is per `WorktreeKey`, held by `MainWindow`, and includes the project's `remoteHost` so the same remote worktree path is not interpreted as a local path.
+- `FileTreeService.loadChildren` is lazy and respects `.gitignore` via `git check-ignore --stdin`. Local projects use `FileManager`; remote projects list children and run `git check-ignore` over SSH.
 - Per-file statuses come from `git status --porcelain=v1 -z`. Modified/renamed → diff hunk color; added/untracked → diff add color; conflict → diff remove color. Parent directories of changed files inherit the modified color. Deleted files are not shown — the tree mirrors the on-disk state.
-- The tree subscribes to `.vcsRepoDidChange` and uses `FileSystemWatcher` (FSEvents on the project root, regardless of git status) so external changes refresh without user action. A manual refresh button is also available in the panel header.
+- The tree subscribes to `.vcsRepoDidChange`. Local projects also use `FileSystemWatcher` (FSEvents on the project root, regardless of git status) so external changes refresh without user action. A manual refresh button is available in the panel header for both local and remote projects.
 
 ## Behaviors
 
@@ -29,7 +29,7 @@ flowchart TB
 
 ## File operations
 
-`FileTreeCommands` (held as view state in `FileTreeView`) drives the flow. It mutates transient `FileTreeState` fields (`pendingNewEntry`, `pendingRenamePath`, `pendingDeletePaths`, `cutPaths`, `dropHighlightPath`, `selectedPaths`, `selectionAnchorPath`) and dispatches to `FileSystemOperations`, a stateless service that runs create / rename / move / copy / trash off the main thread via `GitProcessRunner.offMainThrowing`. Trash uses `NSWorkspace.shared.recycle` so the OS handles Undo.
+`FileTreeCommands` (held as view state in `FileTreeView`) drives the flow. It mutates transient `FileTreeState` fields (`pendingNewEntry`, `pendingRenamePath`, `pendingDeletePaths`, `cutPaths`, `dropHighlightPath`, `selectedPaths`, `selectionAnchorPath`) and dispatches local project operations to `FileSystemOperations`, a stateless service that runs create / rename / move / copy / trash off the main thread via `GitProcessRunner.offMainThrowing`. Trash uses `NSWorkspace.shared.recycle` so the OS handles Undo. Remote project menus hide local filesystem operations and keep path copy/open-terminal actions available.
 
 | Action | Mechanic |
 | --- | --- |

@@ -5,9 +5,10 @@ A side panel showing the active worktree's directory structure. Toggle with `⌘
 ```mermaid
 flowchart TB
   Tree[FileTreeView]
-  Tree -->|"git check-ignore"| Filter[gitignore-aware listing]
-  Tree -->|"git status --porcelain"| Colors[Per-file status colors]
-  FSEvents[FSEvents watcher] --> Tree
+  Tree -->|"local filesystem or SSH"| Listing[Directory listing]
+  Listing -->|"git check-ignore"| Filter[gitignore-aware listing]
+  Tree -->|"local git or remote git over SSH"| Colors[Per-file status colors]
+  FSEvents[FSEvents watcher<br/>local projects] --> Tree
 ```
 
 Only one of the file tree or attached VCS panel is visible at a time — opening one closes the other.
@@ -36,9 +37,11 @@ Files are colored by git status: modified, added, untracked, deleted. Folders in
 
 Multi-select with `⌘`-click and `⇧`-click. Drag and drop moves; hold `⌥` while dragging to copy.
 
+Remote projects support SSH-backed browsing, gitignore marking, git status colors, path copying, and opening a terminal in the selected remote directory. Local filesystem operations such as rename, delete, paste, drag/drop, and Reveal in Finder are only shown for local projects.
+
 ## External changes
 
-A FSEvents watcher picks up changes made outside Muxy — no manual refresh needed.
+A FSEvents watcher picks up local changes made outside Muxy — no manual refresh needed. Remote projects refresh from VCS notifications and the panel refresh button.
 
 ## Resizing
 

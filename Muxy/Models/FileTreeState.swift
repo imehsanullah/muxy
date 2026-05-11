@@ -23,6 +23,7 @@ final class FileTreeState {
     }
 
     let rootPath: String
+    let remoteHost: String?
     private(set) var rootEntries: [FileTreeEntry] = []
     private(set) var children: [String: [FileTreeEntry]] = [:]
     private(set) var expanded: Set<String> = []
@@ -45,8 +46,10 @@ final class FileTreeState {
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private var statusTask: Task<Void, Never>?
 
-    init(rootPath: String) {
+    init(rootPath: String, remoteHost: String? = nil) {
         self.rootPath = rootPath
+        let trimmedRemoteHost = remoteHost?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.remoteHost = trimmedRemoteHost?.isEmpty == false ? trimmedRemoteHost : nil
         observeRepoChanges()
         installWatcher()
     }
@@ -292,9 +295,10 @@ final class FileTreeState {
 
     private func reloadRoot() {
         let root = rootPath
+        let remoteHost = remoteHost
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
-            let entries = await FileTreeService.loadChildren(of: root, repoRoot: root)
+            let entries = await FileTreeService.loadChildren(of: root, repoRoot: root, remoteHost: remoteHost)
             guard !Task.isCancelled, let self else { return }
             rootEntries = entries
         }
@@ -302,9 +306,10 @@ final class FileTreeState {
 
     private func reloadChildren(of directoryPath: String) {
         let root = rootPath
+        let remoteHost = remoteHost
         loadingPaths.insert(directoryPath)
         Task { [weak self] in
-            let entries = await FileTreeService.loadChildren(of: directoryPath, repoRoot: root)
+            let entries = await FileTreeService.loadChildren(of: directoryPath, repoRoot: root, remoteHost: remoteHost)
             guard !Task.isCancelled, let self else { return }
             children[directoryPath] = entries
             loadingPaths.remove(directoryPath)
@@ -328,6 +333,7 @@ final class FileTreeState {
     }
 
     private func installWatcher() {
+        guard remoteHost == nil else { return }
         watcher = FileSystemWatcher(directoryPath: rootPath) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.refresh()
@@ -337,9 +343,10 @@ final class FileTreeState {
 
     private func refreshStatuses() {
         let root = rootPath
+        let remoteHost = remoteHost
         statusTask?.cancel()
         statusTask = Task { [weak self] in
-            let result = await Self.loadStatuses(repoRoot: root)
+            let result = await Self.loadStatuses(repoRoot: root, remoteHost: remoteHost)
             guard !Task.isCancelled, let self else { return }
             statuses = result.fileStatuses
             dirHasChange = result.dirtyDirs
@@ -351,8 +358,30 @@ final class FileTreeState {
         let dirtyDirs: Set<String>
     }
 
-    nonisolated private static func loadStatuses(repoRoot: String) async -> StatusResult {
-        await GitProcessRunner.offMain {
+    nonisolated private static func loadStatuses(repoRoot: String, remoteHost: String?) async -> StatusResult {
+        if let remoteHost {
+            do {
+                let result = try await GitProcessRunner.runRemoteGit(
+                    sshDestination: remoteHost,
+                    repoPath: repoRoot,
+                    arguments: [
+                        "-c",
+                        "core.quotepath=false",
+                        "status",
+                        "--porcelain=v1",
+                        "-z",
+                        "--untracked-files=normal",
+                    ]
+                )
+                guard result.status == 0 else {
+                    return StatusResult(fileStatuses: [:], dirtyDirs: [])
+                }
+                return statusResult(from: result.stdoutData, repoRoot: repoRoot)
+            } catch {
+                return StatusResult(fileStatuses: [:], dirtyDirs: [])
+            }
+        }
+        return await GitProcessRunner.offMain {
             loadStatusesSync(repoRoot: repoRoot)
         }
     }
@@ -385,6 +414,10 @@ final class FileTreeState {
         _ = try? stderrPipe.fileHandleForReading.readToEnd()
         process.waitUntilExit()
 
+        return statusResult(from: outData, repoRoot: repoRoot)
+    }
+
+    nonisolated private static func statusResult(from outData: Data, repoRoot: String) -> StatusResult {
         let normalizedRoot = repoRoot.hasSuffix("/") ? String(repoRoot.dropLast()) : repoRoot
         var fileStatuses: [String: FileStatus] = [:]
         var dirtyDirs: Set<String> = []
