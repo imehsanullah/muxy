@@ -90,10 +90,15 @@ final class ImageViewerTabState {
         let requestedPath = filePath
         loadState = .loading
         do {
-            let loaded = try await ImageFileLoader.loadData(filePath: requestedPath, remoteHost: remoteHost)
+            let loaded = try await PreviewFileLoader.loadData(
+                filePath: requestedPath,
+                remoteHost: remoteHost,
+                maxBytes: PreviewFileLoader.maxImageBytes,
+                signpostName: "remote-image"
+            )
             guard requestedPath == filePath else { return }
             guard let loadedImage = NSImage(data: loaded.data) else {
-                throw ImageFileLoaderError.invalidImage
+                throw PreviewFileLoaderError.invalidFormat("Image format is not supported.")
             }
             image = loadedImage
             byteCount = loaded.byteCount

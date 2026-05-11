@@ -224,6 +224,8 @@ private struct TabContentView: View {
             DiffViewerPane(state: diffState, focused: focused, onFocus: onFocus)
         case let .imageViewer(imageState):
             ImageViewerPane(state: imageState, focused: focused, onFocus: onFocus)
+        case let .pdfViewer(pdfState):
+            PDFViewerPane(state: pdfState, focused: focused, onFocus: onFocus)
         }
     }
 }

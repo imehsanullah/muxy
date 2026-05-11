@@ -90,6 +90,7 @@ extension TerminalTab.Kind {
         case .editor: .editor
         case .diffViewer: .diffViewer
         case .imageViewer: .imageViewer
+        case .pdfViewer: .pdfViewer
         }
     }
 }

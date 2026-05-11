@@ -52,6 +52,10 @@ Opt-in line wrapping is available in the editor toolbar. The editor uses a virtu
 
 Image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.tiff`, `.heic`, `.heif`, `.avif`) open in a native image viewer tab with zoom, fit-to-window, actual-size, trackpad magnification, and drag panning. SSH-backed remote projects fetch the image bytes over SSH and render them locally.
 
+## PDF preview
+
+PDF files open in a native PDF viewer tab with continuous scrolling, page navigation, zoom, fit-width, fit-page, and actual-size controls. SSH-backed remote projects fetch the PDF bytes over SSH and render them locally; only the file path is persisted with the workspace.
+
 ## External editor
 
 If you prefer your own editor, **Settings → Editor** lets you set a default external editor command. Quick Open and file-tree double-click then route to that command instead of the built-in editor.

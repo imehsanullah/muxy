@@ -9,6 +9,7 @@ final class TerminalTab: Identifiable {
         case editor
         case diffViewer
         case imageViewer
+        case pdfViewer
     }
 
     enum Content {
@@ -17,6 +18,7 @@ final class TerminalTab: Identifiable {
         case editor(EditorTabState)
         case diffViewer(DiffViewerTabState)
         case imageViewer(ImageViewerTabState)
+        case pdfViewer(PDFViewerTabState)
 
         var kind: Kind {
             switch self {
@@ -25,6 +27,7 @@ final class TerminalTab: Identifiable {
             case .editor: .editor
             case .diffViewer: .diffViewer
             case .imageViewer: .imageViewer
+            case .pdfViewer: .pdfViewer
             }
         }
 
@@ -53,6 +56,25 @@ final class TerminalTab: Identifiable {
             return state
         }
 
+        var pdfViewerState: PDFViewerTabState? {
+            guard case let .pdfViewer(state) = self else { return nil }
+            return state
+        }
+
+        @MainActor
+        var filePath: String? {
+            if let editorState {
+                return editorState.filePath
+            }
+            if let imageViewerState {
+                return imageViewerState.filePath
+            }
+            if let pdfViewerState {
+                return pdfViewerState.filePath
+            }
+            return pane?.externalEditorFilePath
+        }
+
         var projectPath: String {
             switch self {
             case let .terminal(pane): pane.projectPath
@@ -60,6 +82,7 @@ final class TerminalTab: Identifiable {
             case let .editor(state): state.projectPath
             case let .diffViewer(state): state.projectPath
             case let .imageViewer(state): state.projectPath
+            case let .pdfViewer(state): state.projectPath
             }
         }
     }
@@ -87,6 +110,8 @@ final class TerminalTab: Identifiable {
             return state.displayTitle
         case let .imageViewer(state):
             return state.displayTitle
+        case let .pdfViewer(state):
+            return state.displayTitle
         }
     }
 
@@ -108,6 +133,10 @@ final class TerminalTab: Identifiable {
 
     init(imageViewerState: ImageViewerTabState) {
         content = .imageViewer(imageViewerState)
+    }
+
+    init(pdfViewerState: PDFViewerTabState) {
+        content = .pdfViewer(pdfViewerState)
     }
 
     init(restoring snapshot: TerminalTabSnapshot, remoteHost: String?) {
@@ -145,6 +174,16 @@ final class TerminalTab: Identifiable {
             } else {
                 content = .terminal(TerminalPaneState(projectPath: snapshot.projectPath, title: snapshot.paneTitle))
             }
+        case .pdfViewer:
+            if let filePath = snapshot.filePath {
+                content = .pdfViewer(PDFViewerTabState(
+                    projectPath: snapshot.projectPath,
+                    filePath: filePath,
+                    remoteHost: remoteHost
+                ))
+            } else {
+                content = .terminal(TerminalPaneState(projectPath: snapshot.projectPath, title: snapshot.paneTitle))
+            }
         }
     }
 
@@ -156,7 +195,7 @@ final class TerminalTab: Identifiable {
             isPinned: isPinned,
             projectPath: content.projectPath,
             paneTitle: content.pane?.title,
-            filePath: content.editorState?.filePath ?? content.imageViewerState?.filePath ?? content.pane?.externalEditorFilePath,
+            filePath: content.filePath,
             currentWorkingDirectory: content.pane?.currentWorkingDirectory,
             startupCommand: content.pane?.startupCommand,
             terminalSessionID: content.pane?.sessionID

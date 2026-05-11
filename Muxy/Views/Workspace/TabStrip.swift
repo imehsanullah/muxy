@@ -619,6 +619,7 @@ private struct TabCell: View {
         case .editor: label += ", Editor"
         case .diffViewer: label += ", Diff Viewer"
         case .imageViewer: label += ", Image Viewer"
+        case .pdfViewer: label += ", PDF Viewer"
         }
         if tab.isPinned { label += ", Pinned" }
         if hasUnread { label += ", Unread" }
@@ -646,6 +647,9 @@ private struct TabCell: View {
                 .font(.system(size: UIMetrics.fontFootnote, weight: .semibold))
         } else if tab.kind == .imageViewer {
             Image(systemName: "photo")
+                .font(.system(size: UIMetrics.fontBody, weight: .semibold))
+        } else if tab.kind == .pdfViewer {
+            Image(systemName: "doc.richtext")
                 .font(.system(size: UIMetrics.fontBody, weight: .semibold))
         } else {
             Image(systemName: "terminal")

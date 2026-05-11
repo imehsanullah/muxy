@@ -255,6 +255,24 @@ struct WorkspaceReducerTests {
         #expect(area?.activeTab?.content.imageViewerState?.filePath == "/tmp/test/image.png")
     }
 
+    @Test("createPDFViewerTab adds PDF viewer tab")
+    func createPDFViewerTab() {
+        let projectID = UUID()
+        let worktreeID = UUID()
+        var state = makeState(projectID: projectID, worktreeID: worktreeID)
+
+        let action = AppState.Action.createPDFViewerTab(
+            projectID: projectID,
+            areaID: nil,
+            filePath: "/tmp/test/document.pdf"
+        )
+        _ = WorkspaceReducer.reduce(action: action, state: &state)
+
+        let area = focusedArea(in: state, projectID: projectID)
+        #expect(area?.activeTab?.kind == .pdfViewer)
+        #expect(area?.activeTab?.content.pdfViewerState?.filePath == "/tmp/test/document.pdf")
+    }
+
     @Test("createExternalEditorTab adds terminal editor tab")
     func createExternalEditorTab() {
         let projectID = UUID()

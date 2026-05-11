@@ -130,6 +130,14 @@ enum WorkspaceReducer {
                 state: &state
             )
 
+        case let .createPDFViewerTab(projectID, areaID, filePath):
+            TabReducer.createPDFViewerTab(
+                projectID: projectID,
+                areaID: areaID,
+                filePath: filePath,
+                state: &state
+            )
+
         case let .createExternalEditorTab(projectID, areaID, filePath, command):
             TabReducer.createExternalEditorTab(
                 projectID: projectID,

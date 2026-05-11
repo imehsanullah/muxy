@@ -360,6 +360,10 @@ struct MainWindow: View {
         .padding(.trailing, UIMetrics.spacing2)
     }
 
+    private func openInIDEFilePath(for tab: TerminalTab?) -> String? {
+        tab?.content.filePath
+    }
+
     @ViewBuilder
     private var topBarContent: some View {
         if let project = activeProject,
@@ -377,7 +381,7 @@ struct MainWindow: View {
                 showDevelopmentBadge: AppEnvironment.isDevelopment,
                 openInIDEProjectPath: activeWorktreePath(for: project),
                 openInIDERemoteHost: project.remoteHost,
-                openInIDEFilePath: area.activeTab?.content.editorState?.filePath ?? area.activeTab?.content.imageViewerState?.filePath,
+                openInIDEFilePath: openInIDEFilePath(for: area.activeTab),
                 openInIDECursorProvider: {
                     guard let editorState = appState.activeTab(for: project.id)?.content.editorState else {
                         return (nil, nil)

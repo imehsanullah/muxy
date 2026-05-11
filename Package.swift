@@ -62,6 +62,7 @@ let package = Package(
                 .linkedFramework("IOKit"),
                 .linkedFramework("Metal"),
                 .linkedFramework("MetalKit"),
+                .linkedFramework("PDFKit"),
                 .linkedFramework("QuartzCore"),
                 .linkedLibrary("c++"),
             ]
@@ -87,6 +88,7 @@ let package = Package(
                 .linkedFramework("IOKit"),
                 .linkedFramework("Metal"),
                 .linkedFramework("MetalKit"),
+                .linkedFramework("PDFKit"),
                 .linkedFramework("QuartzCore"),
                 .linkedLibrary("c++"),
             ]

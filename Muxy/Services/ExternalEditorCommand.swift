@@ -26,6 +26,10 @@ enum ExternalEditorCommand {
         return imageFileExtensions.contains(pathExtension)
     }
 
+    static func isPDFFile(_ filePath: String) -> Bool {
+        (filePath as NSString).pathExtension.lowercased() == "pdf"
+    }
+
     private static func commandWithMouseSupportIfNeeded(_ command: String) -> String {
         let parts = command.split(maxSplits: 1, whereSeparator: \.isWhitespace)
         guard let executable = parts.first.map(String.init) else { return command }

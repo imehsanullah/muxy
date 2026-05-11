@@ -47,4 +47,10 @@ struct ExternalEditorCommandTests {
         #expect(ExternalEditorCommand.isImageFile("/tmp/clip.webp"))
         #expect(!ExternalEditorCommand.isImageFile("/tmp/readme.md"))
     }
+
+    @Test("isPDFFile recognizes PDF extension")
+    func isPDFFileRecognizesPDFExtension() {
+        #expect(ExternalEditorCommand.isPDFFile("/tmp/document.PDF"))
+        #expect(!ExternalEditorCommand.isPDFFile("/tmp/document.pdfx"))
+    }
 }

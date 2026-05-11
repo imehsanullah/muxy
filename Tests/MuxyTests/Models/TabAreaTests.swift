@@ -115,6 +115,32 @@ struct TabAreaTests {
         #expect(area.activeTabID == imageTabID)
     }
 
+    @Test("createPDFViewerTab adds tab with PDF viewer content")
+    func createPDFViewerTab() {
+        let area = TabArea(projectPath: testPath)
+        let filePath = "/tmp/test/document.pdf"
+        area.createPDFViewerTab(filePath: filePath)
+
+        #expect(area.tabs.count == 2)
+        #expect(area.activeTab?.kind == .pdfViewer)
+        #expect(area.activeTab?.content.pdfViewerState?.filePath == filePath)
+    }
+
+    @Test("createPDFViewerTab reuses existing tab for same file path")
+    func createPDFViewerTabReuse() {
+        let area = TabArea(projectPath: testPath)
+        let filePath = "/tmp/test/document.pdf"
+        area.createPDFViewerTab(filePath: filePath)
+        let pdfTabID = area.activeTabID
+
+        area.createTab()
+        #expect(area.activeTabID != pdfTabID)
+
+        area.createPDFViewerTab(filePath: filePath)
+        #expect(area.tabs.count == 3)
+        #expect(area.activeTabID == pdfTabID)
+    }
+
     @Test("createExternalEditorTab adds terminal tab with launch command")
     func createExternalEditorTab() {
         let area = TabArea(projectPath: testPath)

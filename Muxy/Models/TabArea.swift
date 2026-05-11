@@ -108,6 +108,18 @@ final class TabArea: Identifiable {
         )))
     }
 
+    func createPDFViewerTab(filePath: String) {
+        if let existing = tabs.first(where: { $0.content.pdfViewerState?.filePath == filePath }) {
+            selectTab(existing.id)
+            return
+        }
+        insertTab(TerminalTab(pdfViewerState: PDFViewerTabState(
+            projectPath: projectPath,
+            filePath: filePath,
+            remoteHost: remoteHost
+        )))
+    }
+
     func createDiffViewerTab(vcs: VCSTabState, filePath: String, isStaged: Bool) {
         if let existing = tabs.first(where: { tab in
             guard let diff = tab.content.diffViewerState else { return false }

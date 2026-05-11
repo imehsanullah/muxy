@@ -31,6 +31,7 @@ final class AppState {
         case createVCSTab(projectID: UUID, areaID: UUID?)
         case createEditorTab(projectID: UUID, areaID: UUID?, filePath: String, suppressInitialFocus: Bool)
         case createImageViewerTab(projectID: UUID, areaID: UUID?, filePath: String)
+        case createPDFViewerTab(projectID: UUID, areaID: UUID?, filePath: String)
         case createExternalEditorTab(projectID: UUID, areaID: UUID?, filePath: String, command: String)
         case createDiffViewerTab(projectID: UUID, areaID: UUID?, request: DiffViewerRequest)
         case closeTab(projectID: UUID, areaID: UUID, tabID: UUID)
@@ -266,6 +267,10 @@ final class AppState {
             openImageViewer(filePath, projectID: projectID)
             return
         }
+        if ExternalEditorCommand.isPDFFile(filePath) {
+            openPDFViewer(filePath, projectID: projectID)
+            return
+        }
         let settings = EditorSettings.shared
         if projectUsesRemoteSession(projectID: projectID) {
             openFileInExternalEditor(
@@ -367,6 +372,14 @@ final class AppState {
                             imageViewerState.updateFilePath(newPath + "/" + String(currentPath.dropFirst(oldPrefix.count)))
                         }
                     }
+                    if let pdfViewerState = tab.content.pdfViewerState {
+                        let currentPath = pdfViewerState.filePath
+                        if currentPath == oldPath {
+                            pdfViewerState.updateFilePath(newPath)
+                        } else if currentPath.hasPrefix(oldPrefix) {
+                            pdfViewerState.updateFilePath(newPath + "/" + String(currentPath.dropFirst(oldPrefix.count)))
+                        }
+                    }
                 }
             }
         }
@@ -397,6 +410,16 @@ final class AppState {
             }
         }
         dispatch(.createImageViewerTab(projectID: projectID, areaID: nil, filePath: filePath))
+    }
+
+    private func openPDFViewer(_ filePath: String, projectID: UUID) {
+        for area in allAreas(for: projectID) {
+            if let tab = area.tabs.first(where: { $0.content.pdfViewerState?.filePath == filePath }) {
+                dispatch(.selectTab(projectID: projectID, areaID: area.id, tabID: tab.id))
+                return
+            }
+        }
+        dispatch(.createPDFViewerTab(projectID: projectID, areaID: nil, filePath: filePath))
     }
 
     private func openFileInExternalEditor(_ filePath: String, projectID: UUID, command: String) {
