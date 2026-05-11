@@ -122,6 +122,14 @@ enum WorkspaceReducer {
                 state: &state
             )
 
+        case let .createImageViewerTab(projectID, areaID, filePath):
+            TabReducer.createImageViewerTab(
+                projectID: projectID,
+                areaID: areaID,
+                filePath: filePath,
+                state: &state
+            )
+
         case let .createExternalEditorTab(projectID, areaID, filePath, command):
             TabReducer.createExternalEditorTab(
                 projectID: projectID,

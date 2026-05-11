@@ -618,6 +618,7 @@ private struct TabCell: View {
         case .vcs: label += ", Source Control"
         case .editor: label += ", Editor"
         case .diffViewer: label += ", Diff Viewer"
+        case .imageViewer: label += ", Image Viewer"
         }
         if tab.isPinned { label += ", Pinned" }
         if hasUnread { label += ", Unread" }
@@ -643,6 +644,9 @@ private struct TabCell: View {
         } else if tab.kind == .diffViewer {
             Image(systemName: "rectangle.split.2x1")
                 .font(.system(size: UIMetrics.fontFootnote, weight: .semibold))
+        } else if tab.kind == .imageViewer {
+            Image(systemName: "photo")
+                .font(.system(size: UIMetrics.fontBody, weight: .semibold))
         } else {
             Image(systemName: "terminal")
                 .font(.system(size: UIMetrics.fontBody, weight: .semibold))

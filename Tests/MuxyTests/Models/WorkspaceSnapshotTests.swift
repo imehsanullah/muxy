@@ -102,6 +102,24 @@ struct WorkspaceSnapshotTests {
         #expect(decoded.paneTitle == "Terminal")
     }
 
+    @Test("TerminalTabSnapshot Codable round-trip for image viewer")
+    func imageViewerTabSnapshotRoundTrip() throws {
+        let snapshot = TerminalTabSnapshot(
+            kind: .imageViewer,
+            customTitle: nil,
+            colorID: nil,
+            isPinned: false,
+            projectPath: testPath,
+            paneTitle: nil,
+            filePath: "/tmp/test/image.png"
+        )
+        let data = try JSONEncoder().encode(snapshot)
+        let decoded = try JSONDecoder().decode(TerminalTabSnapshot.self, from: data)
+
+        #expect(decoded.kind == .imageViewer)
+        #expect(decoded.filePath == "/tmp/test/image.png")
+    }
+
     @Test("TerminalTabSnapshot decoding with missing kind defaults to terminal")
     func terminalTabSnapshotMissingKind() throws {
         let json = """

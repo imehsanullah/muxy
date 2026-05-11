@@ -30,6 +30,7 @@ final class AppState {
         case createCommandTab(projectID: UUID, areaID: UUID?, name: String, command: String)
         case createVCSTab(projectID: UUID, areaID: UUID?)
         case createEditorTab(projectID: UUID, areaID: UUID?, filePath: String, suppressInitialFocus: Bool)
+        case createImageViewerTab(projectID: UUID, areaID: UUID?, filePath: String)
         case createExternalEditorTab(projectID: UUID, areaID: UUID?, filePath: String, command: String)
         case createDiffViewerTab(projectID: UUID, areaID: UUID?, request: DiffViewerRequest)
         case closeTab(projectID: UUID, areaID: UUID, tabID: UUID)
@@ -261,15 +262,11 @@ final class AppState {
         line: Int? = nil,
         column: Int = 1
     ) {
-        let settings = EditorSettings.shared
         if ExternalEditorCommand.isImageFile(filePath) {
-            openFileInExternalEditor(
-                filePath,
-                projectID: projectID,
-                command: ExternalEditorCommand.imageViewerCommand(preferredCommand: settings.imageViewerCommand)
-            )
+            openImageViewer(filePath, projectID: projectID)
             return
         }
+        let settings = EditorSettings.shared
         if projectUsesRemoteSession(projectID: projectID) {
             openFileInExternalEditor(
                 filePath,
@@ -354,12 +351,21 @@ final class AppState {
         for (_, root) in workspaceRoots {
             for area in root.allAreas() {
                 for tab in area.tabs {
-                    guard let editorState = tab.content.editorState else { continue }
-                    let currentPath = editorState.filePath
-                    if currentPath == oldPath {
-                        editorState.updateFilePath(newPath)
-                    } else if currentPath.hasPrefix(oldPrefix) {
-                        editorState.updateFilePath(newPath + "/" + String(currentPath.dropFirst(oldPrefix.count)))
+                    if let editorState = tab.content.editorState {
+                        let currentPath = editorState.filePath
+                        if currentPath == oldPath {
+                            editorState.updateFilePath(newPath)
+                        } else if currentPath.hasPrefix(oldPrefix) {
+                            editorState.updateFilePath(newPath + "/" + String(currentPath.dropFirst(oldPrefix.count)))
+                        }
+                    }
+                    if let imageViewerState = tab.content.imageViewerState {
+                        let currentPath = imageViewerState.filePath
+                        if currentPath == oldPath {
+                            imageViewerState.updateFilePath(newPath)
+                        } else if currentPath.hasPrefix(oldPrefix) {
+                            imageViewerState.updateFilePath(newPath + "/" + String(currentPath.dropFirst(oldPrefix.count)))
+                        }
                     }
                 }
             }
@@ -383,13 +389,19 @@ final class AppState {
         ))
     }
 
+    private func openImageViewer(_ filePath: String, projectID: UUID) {
+        for area in allAreas(for: projectID) {
+            if let tab = area.tabs.first(where: { $0.content.imageViewerState?.filePath == filePath }) {
+                dispatch(.selectTab(projectID: projectID, areaID: area.id, tabID: tab.id))
+                return
+            }
+        }
+        dispatch(.createImageViewerTab(projectID: projectID, areaID: nil, filePath: filePath))
+    }
+
     private func openFileInExternalEditor(_ filePath: String, projectID: UUID, command: String) {
         for area in allAreas(for: projectID) {
-            let launchCommand = TabArea.externalEditorStartupCommand(
-                command: command,
-                filePath: filePath,
-                remoteHost: area.remoteHost
-            )
+            let launchCommand = TabArea.editorLaunchCommand(command: command, filePath: filePath)
             if let tab = area.tabs.first(where: {
                 $0.content.pane?.externalEditorFilePath == filePath &&
                     $0.content.pane?.startupCommand == launchCommand

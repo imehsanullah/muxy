@@ -58,7 +58,7 @@ classDiagram
   }
   class Tab {
     id: uuid
-    kind: terminal | vcs | editor | diffViewer
+    kind: terminal | vcs | editor | diffViewer | imageViewer
     title: string
     isPinned: bool
     paneID: uuid

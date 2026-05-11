@@ -37,7 +37,7 @@ flowchart TB
 | Rename / new entry | Inline `FileTreeRenameField`, commits on Return / blur, cancels on Escape. |
 | Cut / copy / paste | `FileClipboard` writes file URLs to `NSPasteboard.general` and tags cuts with `app.muxy.fileCut` so Muxy round-trips cut state while staying interoperable with Finder. |
 | Drag & drop | `.fileURL` providers on every directory row + empty space. Hold Option to copy. Drops that move a path into itself are filtered. |
-| Path moves | `AppState.handleFileMoved(from:to:)` rewrites every open `EditorTabState.filePath` (exact + descendants of moved dirs). |
+| Path moves | `AppState.handleFileMoved(from:to:)` rewrites every open `EditorTabState.filePath` and `ImageViewerTabState.filePath` (exact + descendants of moved dirs). |
 | Open in Terminal | Dispatches `.createTabInDirectory` to root a new terminal tab at the selected directory. |
 
 Errors surface through `ToastState.shared` and are also logged.

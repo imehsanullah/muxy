@@ -96,6 +96,18 @@ final class TabArea: Identifiable {
         insertTab(TerminalTab(editorState: editorState))
     }
 
+    func createImageViewerTab(filePath: String) {
+        if let existing = tabs.first(where: { $0.content.imageViewerState?.filePath == filePath }) {
+            selectTab(existing.id)
+            return
+        }
+        insertTab(TerminalTab(imageViewerState: ImageViewerTabState(
+            projectPath: projectPath,
+            filePath: filePath,
+            remoteHost: remoteHost
+        )))
+    }
+
     func createDiffViewerTab(vcs: VCSTabState, filePath: String, isStaged: Bool) {
         if let existing = tabs.first(where: { tab in
             guard let diff = tab.content.diffViewerState else { return false }
@@ -121,22 +133,11 @@ final class TabArea: Identifiable {
             projectPath: projectPath,
             remoteHost: remoteHost,
             title: title,
-            startupCommand: Self.externalEditorStartupCommand(
-                command: command,
-                filePath: filePath,
-                remoteHost: remoteHost
-            ),
+            startupCommand: Self.editorLaunchCommand(command: command, filePath: filePath),
             startupCommandInteractive: true,
             externalEditorFilePath: filePath
         )
         insertTab(TerminalTab(pane: pane))
-    }
-
-    static func externalEditorStartupCommand(command: String, filePath: String, remoteHost: String?) -> String {
-        if ExternalEditorCommand.isImageFile(filePath) {
-            return imageViewerStartupCommand(command: command, filePath: filePath, remoteHost: remoteHost)
-        }
-        return editorLaunchCommand(command: command, filePath: filePath)
     }
 
     static func editorLaunchCommand(command: String, filePath: String) -> String {
@@ -144,24 +145,6 @@ final class TabArea: Identifiable {
             return command.replacingOccurrences(of: "{file}", with: filePath)
         }
         return command + " " + ShellCommandEscaping.escape(filePath)
-    }
-
-    private static func imageViewerStartupCommand(command: String, filePath: String, remoteHost: String?) -> String {
-        let launchCommand = imageViewerLaunchCommand(command: command, filePath: filePath, remoteHost: remoteHost)
-        return "\(launchCommand); exec ${SHELL:-/bin/zsh} -l"
-    }
-
-    private static func imageViewerLaunchCommand(command: String, filePath: String, remoteHost: String?) -> String {
-        guard remoteHost != nil,
-              command == ExternalEditorCommand.defaultImageViewerCommand
-        else {
-            return editorLaunchCommand(command: command, filePath: filePath)
-        }
-        let escapedFilePath = ShellCommandEscaping.escape(filePath)
-        return "if [ -n \"${TMUX:-}\" ]; then "
-            + "tmux set-option -p allow-passthrough on 2>/dev/null || true; "
-            + "chafa --passthrough tmux -f kitty \(escapedFilePath) || chafa -f kitty \(escapedFilePath); "
-            + "else chafa -f kitty \(escapedFilePath); fi"
     }
 
     private static func commandTitle(_ command: String) -> String {

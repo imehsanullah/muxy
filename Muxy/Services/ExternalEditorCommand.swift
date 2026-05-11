@@ -1,7 +1,6 @@
 import Foundation
 
 enum ExternalEditorCommand {
-    static let defaultImageViewerCommand = "chafa -f kitty"
     private static let imageFileExtensions: Set<String> = [
         "avif",
         "bmp",
@@ -20,12 +19,6 @@ enum ExternalEditorCommand {
         let command = preferredCommand.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !command.isEmpty else { return vimMouseCommand(executable: "vim", arguments: "") }
         return commandWithMouseSupportIfNeeded(command)
-    }
-
-    static func imageViewerCommand(preferredCommand: String) -> String {
-        let command = preferredCommand.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !command.isEmpty else { return defaultImageViewerCommand }
-        return command
     }
 
     static func isImageFile(_ filePath: String) -> Bool {

@@ -36,7 +36,6 @@ final class EditorSettings {
     var fontFamily: String = "SF Mono" { didSet { save() } }
     var defaultEditor: DefaultEditor = .builtIn { didSet { save() } }
     var externalEditorCommand: String = "vim" { didSet { save() } }
-    var imageViewerCommand: String = ExternalEditorCommand.defaultImageViewerCommand { didSet { save() } }
     var markdownPreviewFontFamily: String = EditorSettings.defaultMarkdownPreviewFontFamily { didSet { save() } }
     var markdownPreviewFontScale: CGFloat = EditorSettings.defaultMarkdownPreviewFontScale { didSet { save() } }
     var highlightCurrentLine: Bool = true { didSet { save() } }
@@ -111,7 +110,6 @@ final class EditorSettings {
         fontFamily = "SF Mono"
         defaultEditor = .builtIn
         externalEditorCommand = "vim"
-        imageViewerCommand = ExternalEditorCommand.defaultImageViewerCommand
         markdownPreviewFontFamily = Self.defaultMarkdownPreviewFontFamily
         markdownPreviewFontScale = Self.defaultMarkdownPreviewFontScale
         highlightCurrentLine = true
@@ -130,7 +128,6 @@ final class EditorSettings {
             fontFamily = snapshot.fontFamily ?? "SF Mono"
             defaultEditor = snapshot.defaultEditor ?? snapshot.quickOpenEditor ?? .builtIn
             externalEditorCommand = snapshot.externalEditorCommand ?? "vim"
-            imageViewerCommand = snapshot.imageViewerCommand ?? ExternalEditorCommand.defaultImageViewerCommand
             markdownPreviewFontFamily = snapshot.markdownPreviewFontFamily ?? Self.defaultMarkdownPreviewFontFamily
             let loadedScale = snapshot.markdownPreviewFontScale ?? Self.defaultMarkdownPreviewFontScale
             markdownPreviewFontScale = min(
@@ -156,7 +153,6 @@ final class EditorSettings {
                 defaultEditor: defaultEditor,
                 quickOpenEditor: nil,
                 externalEditorCommand: externalEditorCommand,
-                imageViewerCommand: imageViewerCommand,
                 markdownPreviewFontFamily: markdownPreviewFontFamily,
                 markdownPreviewFontScale: markdownPreviewFontScale,
                 highlightCurrentLine: highlightCurrentLine,
@@ -176,7 +172,6 @@ private struct Snapshot: Codable {
     let defaultEditor: EditorSettings.DefaultEditor?
     let quickOpenEditor: EditorSettings.DefaultEditor?
     let externalEditorCommand: String?
-    let imageViewerCommand: String?
     let markdownPreviewFontFamily: String?
     let markdownPreviewFontScale: CGFloat?
     let highlightCurrentLine: Bool?

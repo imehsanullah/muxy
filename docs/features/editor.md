@@ -48,6 +48,10 @@ Zoom: `⌘=`, `⌘-`, `⌘0`.
 
 Opt-in line wrapping is available in the editor toolbar. The editor uses a virtualized HeightMap so wrapped long files stay smooth at large sizes — see [Editor Geometry](../developer/architecture/editor-geometry.md) for the internals.
 
+## Image preview
+
+Image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.tiff`, `.heic`, `.heif`, `.avif`) open in a native image viewer tab with zoom, fit-to-window, actual-size, trackpad magnification, and drag panning. SSH-backed remote projects fetch the image bytes over SSH and render them locally.
+
 ## External editor
 
 If you prefer your own editor, **Settings → Editor** lets you set a default external editor command. Quick Open and file-tree double-click then route to that command instead of the built-in editor.
@@ -55,5 +59,3 @@ If you prefer your own editor, **Settings → Editor** lets you set a default ex
 Terminal Command launches through the user's login interactive shell, matching commands typed into a normal Muxy terminal tab.
 
 SSH-backed remote project files open in a remote terminal editor. When the command is `vim` or `nvim`, Muxy enables Vim mouse support so wheel scrolling is handled inside the file buffer.
-
-Image files open in a terminal image viewer command from **Settings → Editor**. The default is `chafa -f kitty`, which uses Ghostty's Kitty graphics support; Muxy keeps the tab in a login shell after the viewer exits. Remote sessions also enable tmux passthrough when tmux supports it.

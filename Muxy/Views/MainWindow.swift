@@ -377,7 +377,7 @@ struct MainWindow: View {
                 showDevelopmentBadge: AppEnvironment.isDevelopment,
                 openInIDEProjectPath: activeWorktreePath(for: project),
                 openInIDERemoteHost: project.remoteHost,
-                openInIDEFilePath: area.activeTab?.content.editorState?.filePath,
+                openInIDEFilePath: area.activeTab?.content.editorState?.filePath ?? area.activeTab?.content.imageViewerState?.filePath,
                 openInIDECursorProvider: {
                     guard let editorState = appState.activeTab(for: project.id)?.content.editorState else {
                         return (nil, nil)

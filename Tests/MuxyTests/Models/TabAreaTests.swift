@@ -89,6 +89,32 @@ struct TabAreaTests {
         #expect(area.activeTabID == editorTabID)
     }
 
+    @Test("createImageViewerTab adds tab with image viewer content")
+    func createImageViewerTab() {
+        let area = TabArea(projectPath: testPath)
+        let filePath = "/tmp/test/image.png"
+        area.createImageViewerTab(filePath: filePath)
+
+        #expect(area.tabs.count == 2)
+        #expect(area.activeTab?.kind == .imageViewer)
+        #expect(area.activeTab?.content.imageViewerState?.filePath == filePath)
+    }
+
+    @Test("createImageViewerTab reuses existing tab for same file path")
+    func createImageViewerTabReuse() {
+        let area = TabArea(projectPath: testPath)
+        let filePath = "/tmp/test/image.png"
+        area.createImageViewerTab(filePath: filePath)
+        let imageTabID = area.activeTabID
+
+        area.createTab()
+        #expect(area.activeTabID != imageTabID)
+
+        area.createImageViewerTab(filePath: filePath)
+        #expect(area.tabs.count == 3)
+        #expect(area.activeTabID == imageTabID)
+    }
+
     @Test("createExternalEditorTab adds terminal tab with launch command")
     func createExternalEditorTab() {
         let area = TabArea(projectPath: testPath)
@@ -108,35 +134,6 @@ struct TabAreaTests {
         area.createExternalEditorTab(filePath: "/tmp/test/file.swift", command: "vim +10 {file}")
 
         #expect(area.activeTab?.content.pane?.startupCommand == "vim +10 /tmp/test/file.swift")
-    }
-
-    @Test("createExternalEditorTab keeps shell after local image viewer exits")
-    func createExternalEditorTabKeepsShellAfterLocalImageViewerExits() {
-        let area = TabArea(projectPath: testPath)
-        area.createExternalEditorTab(
-            filePath: "/tmp/test/image.png",
-            command: ExternalEditorCommand.defaultImageViewerCommand
-        )
-
-        #expect(
-            area.activeTab?.content.pane?.startupCommand ==
-                "chafa -f kitty '/tmp/test/image.png'; exec ${SHELL:-/bin/zsh} -l"
-        )
-    }
-
-    @Test("createExternalEditorTab enables tmux passthrough for default remote image viewer")
-    func createExternalEditorTabEnablesTmuxPassthroughForDefaultRemoteImageViewer() {
-        let area = TabArea(projectPath: "/srv/project", remoteHost: "dev@example.com")
-        area.createExternalEditorTab(
-            filePath: "/srv/project/image.png",
-            command: ExternalEditorCommand.defaultImageViewerCommand
-        )
-
-        let command = area.activeTab?.content.pane?.startupCommand
-        #expect(command?.contains("tmux set-option -p allow-passthrough on 2>/dev/null || true") == true)
-        #expect(command?.contains("chafa --passthrough tmux -f kitty '/srv/project/image.png'") == true)
-        #expect(command?.contains("chafa -f kitty '/srv/project/image.png'") == true)
-        #expect(command?.hasSuffix("; exec ${SHELL:-/bin/zsh} -l") == true)
     }
 
     @Test("shellEscapedPath quotes simple paths")

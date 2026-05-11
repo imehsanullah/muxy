@@ -18,7 +18,7 @@
 
 Enums:
 
-- `kind`: `terminal`, `vcs`, `editor`, `diffViewer`
+- `kind`: `terminal`, `vcs`, `editor`, `diffViewer`, `imageViewer`
 - `direction`: `horizontal`, `vertical`
 - `position`: `first`, `second`
 
