@@ -53,5 +53,3 @@ Opt-in line wrapping is available in the editor toolbar. The editor uses a virtu
 If you prefer your own editor, **Settings → Editor** lets you set a default external editor command. Quick Open and file-tree double-click then route to that command instead of the built-in editor.
 
 Terminal Command launches through the user's login interactive shell, matching commands typed into a normal Muxy terminal tab.
-
-For SSH-backed remote projects, the built-in editor reads and saves files over SSH so remote file tabs use the same scrolling and editor UI as local files. Choosing Terminal Command still opens the file in a remote terminal tab.

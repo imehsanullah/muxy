@@ -41,7 +41,6 @@ final class EditorTabState: Identifiable {
 
     let id = UUID()
     let projectPath: String
-    let remoteHost: String?
     private(set) var filePath: String
     var backingStoreVersion = 0
     var previewRefreshVersion = 0
@@ -152,9 +151,8 @@ final class EditorTabState: Identifiable {
         }
     }
 
-    init(projectPath: String, filePath: String, remoteHost: String? = nil) {
+    init(projectPath: String, filePath: String) {
         self.projectPath = projectPath
-        self.remoteHost = remoteHost
         self.filePath = filePath
         if isMarkdownFile {
             markdownViewMode = .preview
@@ -229,7 +227,6 @@ final class EditorTabState: Identifiable {
 
     private func installFileWatcher() {
         fileWatcher = nil
-        guard remoteHost == nil else { return }
         fileWatcher = EditorFileWatcher(filePath: filePath) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.handleFileWatcherFire()
@@ -255,7 +252,7 @@ final class EditorTabState: Identifiable {
 
     func keepLocalChanges() {
         hasExternalChange = false
-        lastDiskModificationDate = remoteHost == nil ? Self.modificationDate(at: filePath) : nil
+        lastDiskModificationDate = Self.modificationDate(at: filePath)
     }
 
     private static func modificationDate(at path: String) -> Date? {
@@ -263,21 +260,11 @@ final class EditorTabState: Identifiable {
         return attrs[.modificationDate] as? Date
     }
 
-    private static func modificationDate(at path: String, remoteHost: String?) -> Date? {
-        guard remoteHost == nil else { return nil }
-        return modificationDate(at: path)
-    }
-
     func loadFile() {
         guard !isLoading else { return }
         errorMessage = nil
         isIncrementalLoading = false
         refreshReadOnlyStatus()
-
-        guard remoteHost == nil else {
-            performLoad()
-            return
-        }
 
         let size = fileSize(at: filePath)
         if size >= Self.largeFileRefuseThreshold {
@@ -319,11 +306,10 @@ final class EditorTabState: Identifiable {
         syntaxHighlighter?.reset()
         loadTask?.cancel()
         let path = filePath
-        let remoteHost = remoteHost
         loadTask = Task { [weak self] in
             do {
                 var hasInitialChunk = false
-                for try await event in Self.streamFile(at: path, remoteHost: remoteHost) {
+                for try await event in Self.streamFile(at: path) {
                     guard !Task.isCancelled, let self else { return }
                     switch event {
                     case let .initial(text, hasMore):
@@ -338,7 +324,7 @@ final class EditorTabState: Identifiable {
                         isLoading = false
                         isIncrementalLoading = hasMore
                         if !hasMore {
-                            lastDiskModificationDate = Self.modificationDate(at: path, remoteHost: remoteHost)
+                            lastDiskModificationDate = Self.modificationDate(at: path)
                         }
                     case let .appended(text):
                         if let backingStore {
@@ -365,7 +351,7 @@ final class EditorTabState: Identifiable {
                         if isIncrementalLoading {
                             isIncrementalLoading = false
                         }
-                        lastDiskModificationDate = Self.modificationDate(at: path, remoteHost: remoteHost)
+                        lastDiskModificationDate = Self.modificationDate(at: path)
                     }
                 }
 
@@ -397,45 +383,7 @@ final class EditorTabState: Identifiable {
         return formatter.string(fromByteCount: bytes)
     }
 
-    private static func streamFile(at path: String, remoteHost: String?) -> AsyncThrowingStream<FileLoadEvent, Error> {
-        if let remoteHost {
-            return streamRemoteFile(at: path, remoteHost: remoteHost)
-        }
-        return streamLocalFile(at: path)
-    }
-
-    private static func streamRemoteFile(at path: String, remoteHost: String) -> AsyncThrowingStream<FileLoadEvent, Error> {
-        let refuseThreshold = largeFileRefuseThreshold
-        let refuseThresholdLabel = formatBytes(refuseThreshold)
-        return AsyncThrowingStream { continuation in
-            let workerTask = Task(priority: .userInitiated) {
-                do {
-                    if let size = try await RemoteFileService.fileSize(path: path, sshDestination: remoteHost),
-                       size >= refuseThreshold
-                    {
-                        let sizeLabel = await MainActor.run { formatBytes(size) }
-                        throw RemoteFileServiceError.commandFailed(
-                            "File is too large to open (\(sizeLabel)). Use a dedicated editor for files over \(refuseThresholdLabel)."
-                        )
-                    }
-                    let data = try await RemoteFileService.readFile(path: path, sshDestination: remoteHost)
-                    guard let text = String(data: data, encoding: .utf8) else {
-                        throw RemoteFileServiceError.invalidTextEncoding
-                    }
-                    continuation.yield(FileLoadEvent.initial(text, hasMore: false))
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
-                }
-            }
-
-            continuation.onTermination = { _ in
-                workerTask.cancel()
-            }
-        }
-    }
-
-    private static func streamLocalFile(at path: String) -> AsyncThrowingStream<FileLoadEvent, Error> {
+    private static func streamFile(at path: String) -> AsyncThrowingStream<FileLoadEvent, Error> {
         let initialChunkSize = initialOpenChunkSize
         let streamChunkSize = Self.streamChunkSize
         let yieldChunkSize = Self.streamYieldChunkSize
@@ -553,37 +501,31 @@ final class EditorTabState: Identifiable {
             liveContent
         }
         let path = filePath
-        let remoteHost = remoteHost
         refreshReadOnlyStatus()
-        guard Self.canWriteFile(at: path, remoteHost: remoteHost) else {
+        guard Self.canWriteFile(at: path) else {
             isSaving = false
             throw SaveError.fileIsReadOnly(path)
         }
         do {
-            try await Self.writeFile(text: textToSave, path: path, remoteHost: remoteHost)
+            try await Self.writeFile(text: textToSave, path: path)
             isSaving = false
             isModified = false
-            lastDiskModificationDate = Self.modificationDate(at: path, remoteHost: remoteHost)
+            lastDiskModificationDate = Self.modificationDate(at: path)
         } catch {
             isSaving = false
             throw error
         }
     }
 
-    private static func canWriteFile(at path: String, remoteHost: String?) -> Bool {
-        guard remoteHost == nil else { return true }
-        return FileManager.default.isWritableFile(atPath: path)
+    private static func canWriteFile(at path: String) -> Bool {
+        FileManager.default.isWritableFile(atPath: path)
     }
 
     private func refreshReadOnlyStatus() {
-        isReadOnly = !Self.canWriteFile(at: filePath, remoteHost: remoteHost)
+        isReadOnly = !Self.canWriteFile(at: filePath)
     }
 
-    private static func writeFile(text: String, path: String, remoteHost: String?) async throws {
-        if let remoteHost {
-            try await RemoteFileService.writeFile(text: text, path: path, sshDestination: remoteHost)
-            return
-        }
+    private static func writeFile(text: String, path: String) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             DispatchQueue.global(qos: .utility).async {
                 do {

@@ -91,7 +91,7 @@ final class TabArea: Identifiable {
             selectTab(existing.id)
             return
         }
-        let editorState = EditorTabState(projectPath: projectPath, filePath: filePath, remoteHost: remoteHost)
+        let editorState = EditorTabState(projectPath: projectPath, filePath: filePath)
         editorState.suppressInitialFocus = suppressInitialFocus
         insertTab(TerminalTab(editorState: editorState))
     }
