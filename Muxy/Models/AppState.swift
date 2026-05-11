@@ -262,6 +262,14 @@ final class AppState {
         column: Int = 1
     ) {
         let settings = EditorSettings.shared
+        if ExternalEditorCommand.isImageFile(filePath) {
+            openFileInExternalEditor(
+                filePath,
+                projectID: projectID,
+                command: ExternalEditorCommand.imageViewerCommand(preferredCommand: settings.imageViewerCommand)
+            )
+            return
+        }
         if projectUsesRemoteSession(projectID: projectID) {
             openFileInExternalEditor(
                 filePath,

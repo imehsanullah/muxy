@@ -56,6 +56,13 @@ struct EditorSettingsView: View {
                         .frame(width: SettingsMetrics.controlWidth)
                 }
             }
+
+            SettingsRow("Image Viewer Command") {
+                TextField(ExternalEditorCommand.defaultImageViewerCommand, text: $settings.imageViewerCommand)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: SettingsMetrics.labelFontSize, design: .monospaced))
+                    .frame(width: SettingsMetrics.controlWidth)
+            }
         }
 
         SettingsSection(

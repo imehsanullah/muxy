@@ -46,6 +46,7 @@ struct RemoteProjectSessionCommandTests {
 
         #expect(command.contains("tmux set-option -t muxy-test mouse on"))
         #expect(command.contains("tmux set-option -t muxy-test history-limit 1000000"))
+        #expect(command.contains("tmux set-window-option -t muxy-test allow-passthrough on 2>/dev/null || true"))
     }
 
     @Test("command styles tmux status bar with default background and grey text")

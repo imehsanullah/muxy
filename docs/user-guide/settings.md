@@ -21,6 +21,7 @@ See [Themes](../features/themes.md).
 
 - **Default editor** — built‑in Muxy editor, or an external command.
 - **External editor command** — used when default is set to "external". `{file}`, `{line}`, `{column}` placeholders are substituted. Terminal Command runs through your login interactive shell.
+- **Image viewer command** — used for image files opened from Quick Open or the file tree. Defaults to `chafa -f kitty`.
 - **Font** — font family and size for the built‑in editor.
 
 ## Keyboard Shortcuts

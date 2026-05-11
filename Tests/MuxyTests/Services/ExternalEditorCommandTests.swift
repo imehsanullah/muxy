@@ -39,4 +39,24 @@ struct ExternalEditorCommandTests {
         let command = ExternalEditorCommand.remoteCommand(preferredCommand: "vim -c 'set mouse=n'")
         #expect(command == "vim -c 'set mouse=n'")
     }
+
+    @Test("imageViewerCommand defaults to chafa kitty")
+    func imageViewerCommandDefaultsToChafaKitty() {
+        let command = ExternalEditorCommand.imageViewerCommand(preferredCommand: " ")
+        #expect(command == ExternalEditorCommand.defaultImageViewerCommand)
+    }
+
+    @Test("imageViewerCommand preserves custom command")
+    func imageViewerCommandPreservesCustomCommand() {
+        let command = ExternalEditorCommand.imageViewerCommand(preferredCommand: "kitten icat")
+        #expect(command == "kitten icat")
+    }
+
+    @Test("isImageFile recognizes common image extensions")
+    func isImageFileRecognizesCommonImageExtensions() {
+        #expect(ExternalEditorCommand.isImageFile("/tmp/picture.PNG"))
+        #expect(ExternalEditorCommand.isImageFile("/tmp/photo.jpeg"))
+        #expect(ExternalEditorCommand.isImageFile("/tmp/clip.webp"))
+        #expect(!ExternalEditorCommand.isImageFile("/tmp/readme.md"))
+    }
 }

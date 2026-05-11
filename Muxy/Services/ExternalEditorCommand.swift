@@ -1,10 +1,36 @@
 import Foundation
 
 enum ExternalEditorCommand {
+    static let defaultImageViewerCommand = "chafa -f kitty"
+    private static let imageFileExtensions: Set<String> = [
+        "avif",
+        "bmp",
+        "gif",
+        "heic",
+        "heif",
+        "jpeg",
+        "jpg",
+        "png",
+        "tif",
+        "tiff",
+        "webp",
+    ]
+
     static func remoteCommand(preferredCommand: String) -> String {
         let command = preferredCommand.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !command.isEmpty else { return vimMouseCommand(executable: "vim", arguments: "") }
         return commandWithMouseSupportIfNeeded(command)
+    }
+
+    static func imageViewerCommand(preferredCommand: String) -> String {
+        let command = preferredCommand.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !command.isEmpty else { return defaultImageViewerCommand }
+        return command
+    }
+
+    static func isImageFile(_ filePath: String) -> Bool {
+        let pathExtension = (filePath as NSString).pathExtension.lowercased()
+        return imageFileExtensions.contains(pathExtension)
     }
 
     private static func commandWithMouseSupportIfNeeded(_ command: String) -> String {

@@ -55,3 +55,5 @@ If you prefer your own editor, **Settings → Editor** lets you set a default ex
 Terminal Command launches through the user's login interactive shell, matching commands typed into a normal Muxy terminal tab.
 
 SSH-backed remote project files open in a remote terminal editor. When the command is `vim` or `nvim`, Muxy enables Vim mouse support so wheel scrolling is handled inside the file buffer.
+
+Image files open in a terminal image viewer command from **Settings → Editor**. The default is `chafa -f kitty`, which uses Ghostty's Kitty graphics support; remote sessions also enable tmux passthrough when tmux supports it.

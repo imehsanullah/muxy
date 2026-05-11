@@ -77,6 +77,7 @@ enum RemoteProjectSessionCommand {
             "tmux set-option -t \(safeSessionName) history-limit 1000000",
             "tmux set-option -t \(safeSessionName) status-style \(dimStyle)",
             "tmux set-option -t \(safeSessionName) status-left \(displayName)",
+            "\(windowOption) allow-passthrough on 2>/dev/null || true",
             "\(windowOption) window-status-style \(dimStyle)",
             "\(windowOption) window-status-current-style \(currentStyle)",
             "exec tmux attach-session -t \(safeSessionName)",
