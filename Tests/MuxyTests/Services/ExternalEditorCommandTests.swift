@@ -1,0 +1,42 @@
+import Testing
+
+@testable import Muxy
+
+@Suite("ExternalEditorCommand")
+struct ExternalEditorCommandTests {
+    @Test("remoteCommand defaults to vim with mouse support")
+    func remoteCommandDefaultsToVimWithMouseSupport() {
+        let command = ExternalEditorCommand.remoteCommand(preferredCommand: " ")
+        #expect(command == "vim -c 'set mouse=a'")
+    }
+
+    @Test("remoteCommand adds mouse support to vim")
+    func remoteCommandAddsMouseSupportToVim() {
+        let command = ExternalEditorCommand.remoteCommand(preferredCommand: "vim")
+        #expect(command == "vim -c 'set mouse=a'")
+    }
+
+    @Test("remoteCommand preserves vim arguments")
+    func remoteCommandPreservesVimArguments() {
+        let command = ExternalEditorCommand.remoteCommand(preferredCommand: "vim -n +20")
+        #expect(command == "vim -c 'set mouse=a' -n +20")
+    }
+
+    @Test("remoteCommand adds mouse support to nvim")
+    func remoteCommandAddsMouseSupportToNvim() {
+        let command = ExternalEditorCommand.remoteCommand(preferredCommand: "nvim --clean")
+        #expect(command == "nvim -c 'set mouse=a' --clean")
+    }
+
+    @Test("remoteCommand preserves non-vim commands")
+    func remoteCommandPreservesNonVimCommands() {
+        let command = ExternalEditorCommand.remoteCommand(preferredCommand: "nano")
+        #expect(command == "nano")
+    }
+
+    @Test("remoteCommand does not duplicate explicit mouse configuration")
+    func remoteCommandDoesNotDuplicateExplicitMouseConfiguration() {
+        let command = ExternalEditorCommand.remoteCommand(preferredCommand: "vim -c 'set mouse=n'")
+        #expect(command == "vim -c 'set mouse=n'")
+    }
+}

@@ -263,11 +263,10 @@ final class AppState {
     ) {
         let settings = EditorSettings.shared
         if projectUsesRemoteSession(projectID: projectID) {
-            let command = settings.externalEditorCommand.trimmingCharacters(in: .whitespacesAndNewlines)
             openFileInExternalEditor(
                 filePath,
                 projectID: projectID,
-                command: command.isEmpty ? "vim" : command
+                command: ExternalEditorCommand.remoteCommand(preferredCommand: settings.externalEditorCommand)
             )
             return
         }
@@ -377,8 +376,12 @@ final class AppState {
     }
 
     private func openFileInExternalEditor(_ filePath: String, projectID: UUID, command: String) {
+        let launchCommand = TabArea.editorLaunchCommand(command: command, filePath: filePath)
         for area in allAreas(for: projectID) {
-            if let tab = area.tabs.first(where: { $0.content.pane?.externalEditorFilePath == filePath }) {
+            if let tab = area.tabs.first(where: {
+                $0.content.pane?.externalEditorFilePath == filePath &&
+                    $0.content.pane?.startupCommand == launchCommand
+            }) {
                 dispatch(.selectTab(projectID: projectID, areaID: area.id, tabID: tab.id))
                 return
             }
