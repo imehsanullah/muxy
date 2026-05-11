@@ -114,7 +114,11 @@ final class TerminalTab: Identifiable {
             content = .vcs(VCSStateStore.shared.state(for: snapshot.projectPath, remoteHost: remoteHost))
         case .editor:
             if let filePath = snapshot.filePath {
-                content = .editor(EditorTabState(projectPath: snapshot.projectPath, filePath: filePath))
+                content = .editor(EditorTabState(
+                    projectPath: snapshot.projectPath,
+                    filePath: filePath,
+                    remoteHost: remoteHost
+                ))
             } else {
                 content = .terminal(TerminalPaneState(projectPath: snapshot.projectPath, title: snapshot.paneTitle))
             }
