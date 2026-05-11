@@ -384,8 +384,12 @@ final class AppState {
     }
 
     private func openFileInExternalEditor(_ filePath: String, projectID: UUID, command: String) {
-        let launchCommand = TabArea.editorLaunchCommand(command: command, filePath: filePath)
         for area in allAreas(for: projectID) {
+            let launchCommand = TabArea.externalEditorStartupCommand(
+                command: command,
+                filePath: filePath,
+                remoteHost: area.remoteHost
+            )
             if let tab = area.tabs.first(where: {
                 $0.content.pane?.externalEditorFilePath == filePath &&
                     $0.content.pane?.startupCommand == launchCommand

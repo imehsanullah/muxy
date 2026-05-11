@@ -110,6 +110,35 @@ struct TabAreaTests {
         #expect(area.activeTab?.content.pane?.startupCommand == "vim +10 /tmp/test/file.swift")
     }
 
+    @Test("createExternalEditorTab keeps shell after local image viewer exits")
+    func createExternalEditorTabKeepsShellAfterLocalImageViewerExits() {
+        let area = TabArea(projectPath: testPath)
+        area.createExternalEditorTab(
+            filePath: "/tmp/test/image.png",
+            command: ExternalEditorCommand.defaultImageViewerCommand
+        )
+
+        #expect(
+            area.activeTab?.content.pane?.startupCommand ==
+                "chafa -f kitty '/tmp/test/image.png'; exec ${SHELL:-/bin/zsh} -l"
+        )
+    }
+
+    @Test("createExternalEditorTab enables tmux passthrough for default remote image viewer")
+    func createExternalEditorTabEnablesTmuxPassthroughForDefaultRemoteImageViewer() {
+        let area = TabArea(projectPath: "/srv/project", remoteHost: "dev@example.com")
+        area.createExternalEditorTab(
+            filePath: "/srv/project/image.png",
+            command: ExternalEditorCommand.defaultImageViewerCommand
+        )
+
+        let command = area.activeTab?.content.pane?.startupCommand
+        #expect(command?.contains("tmux set-option -p allow-passthrough on 2>/dev/null || true") == true)
+        #expect(command?.contains("chafa --passthrough tmux -f kitty '/srv/project/image.png'") == true)
+        #expect(command?.contains("chafa -f kitty '/srv/project/image.png'") == true)
+        #expect(command?.hasSuffix("; exec ${SHELL:-/bin/zsh} -l") == true)
+    }
+
     @Test("shellEscapedPath quotes simple paths")
     func shellEscapedPathSimple() {
         let command = TabArea.editorLaunchCommand(command: "vim", filePath: "/tmp/test/file.swift")

@@ -56,4 +56,4 @@ Terminal Command launches through the user's login interactive shell, matching c
 
 SSH-backed remote project files open in a remote terminal editor. When the command is `vim` or `nvim`, Muxy enables Vim mouse support so wheel scrolling is handled inside the file buffer.
 
-Image files open in a terminal image viewer command from **Settings → Editor**. The default is `chafa -f kitty`, which uses Ghostty's Kitty graphics support; remote sessions also enable tmux passthrough when tmux supports it.
+Image files open in a terminal image viewer command from **Settings → Editor**. The default is `chafa -f kitty`, which uses Ghostty's Kitty graphics support; Muxy keeps the tab in a login shell after the viewer exits. Remote sessions also enable tmux passthrough when tmux supports it.
