@@ -22,6 +22,7 @@ struct PaneTabStrip: View {
     var showVCSButton = true
     var showDevelopmentBadge = false
     var openInIDEProjectPath: String?
+    var openInIDERemoteHost: String?
     var openInIDEFilePath: String?
     var openInIDECursorProvider: () -> (line: Int?, column: Int?) = { (nil, nil) }
     let projectID: UUID
@@ -83,6 +84,7 @@ struct PaneTabStrip: View {
                 if isWindowTitleBar {
                     OpenInIDEControl(
                         projectPath: openInIDEProjectPath,
+                        remoteHost: openInIDERemoteHost,
                         filePath: openInIDEFilePath,
                         cursorProvider: openInIDECursorProvider
                     )

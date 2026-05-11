@@ -49,6 +49,16 @@ struct MuxyCommands: Commands {
         activeProject?.isRemote == true
     }
 
+    private var activeProjectRemoteHost: String? {
+        activeProject?.remoteHost
+    }
+
+    private var openInIDEApps: [IDEIntegrationService.IDEApplication] {
+        ideService.installedApps.filter {
+            ideService.canOpenProject(remoteHost: activeProjectRemoteHost, in: $0)
+        }
+    }
+
     private var shortcutDispatcher: ShortcutActionDispatcher {
         ShortcutActionDispatcher(
             appState: appState,
@@ -147,27 +157,30 @@ struct MuxyCommands: Commands {
             .shortcut(for: .openProject, store: keyBindings)
 
             Menu("Open in IDE") {
-                Button {
-                    guard let activeProjectPath else { return }
-                    _ = ideService.openProject(at: activeProjectPath, in: IDEIntegrationService.finderApplication)
-                } label: {
-                    HStack(spacing: 8) {
-                        AppBundleIconView(appURL: IDEIntegrationService.finderAppURL, fallbackSystemName: "folder", size: 20)
-                        Text("Finder")
+                if !activeProjectIsRemote {
+                    Button {
+                        guard let activeProjectPath else { return }
+                        _ = ideService.openProject(at: activeProjectPath, in: IDEIntegrationService.finderApplication)
+                    } label: {
+                        HStack(spacing: 8) {
+                            AppBundleIconView(appURL: IDEIntegrationService.finderAppURL, fallbackSystemName: "folder", size: 20)
+                            Text("Finder")
+                        }
                     }
+
+                    Divider()
                 }
 
-                Divider()
-
-                if ideService.installedApps.isEmpty {
-                    Button("No supported IDEs found") {}
+                if openInIDEApps.isEmpty {
+                    Button(activeProjectIsRemote ? "No Remote SSH-capable IDEs found" : "No supported IDEs found") {}
                         .disabled(true)
                 } else {
-                    ForEach(ideService.installedApps) { ide in
+                    ForEach(openInIDEApps) { ide in
                         Button {
                             guard let activeProjectPath else { return }
                             _ = ideService.openProject(
                                 at: activeProjectPath,
+                                remoteHost: activeProjectRemoteHost,
                                 highlightingFileAt: activeEditorFilePath,
                                 line: activeEditorCursorLine,
                                 column: activeEditorCursorColumn,
@@ -182,7 +195,7 @@ struct MuxyCommands: Commands {
                     }
                 }
             }
-            .disabled(activeProjectPath == nil || activeProjectIsRemote)
+            .disabled(activeProjectPath == nil)
 
             Button("Open Remote Project...") {
                 ProjectOpenService.openRemoteProject(

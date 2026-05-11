@@ -50,6 +50,8 @@ Each project keeps its own tabs, splits, and active tab in memory while the app 
 
 Muxy auto‑discovers IDE‑like apps installed on your Mac (VS Code, Zed, Sublime, JetBrains IDEs, Cursor, …). The **Open in IDE** topbar button and **File → Open in IDE** menu show what was found and remember your last choice. If an editor tab is active, the IDE is launched at that file's line and column when supported.
 
+For SSH-backed remote projects, Muxy filters the launcher list to VS Code-compatible IDEs with a local shell command (`code`, `cursor`, `windsurf`, `codium`, `vscodium`, or `code-insiders`) and opens the remote path through Remote SSH. Finder and local-only IDE launchers are hidden for remote projects because the project path lives on the SSH host.
+
 ## Persistence
 
 Projects live at `~/Library/Application Support/Muxy/projects.json`. Tabs and splits are in‑memory only and lost on app close — use [Layouts](layouts/README.md) for a reproducible workspace.

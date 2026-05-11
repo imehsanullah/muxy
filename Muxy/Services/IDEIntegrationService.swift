@@ -114,6 +114,7 @@ final class IDEIntegrationService: ObservableObject {
     @discardableResult
     func openProject(
         at path: String,
+        remoteHost: String? = nil,
         highlightingFileAt filePath: String? = nil,
         line: Int? = nil,
         column: Int? = nil,
@@ -122,6 +123,7 @@ final class IDEIntegrationService: ObservableObject {
         guard let app = ide ?? defaultIDE else { return false }
 
         if app.bundleIdentifier == Self.finderBundleIdentifier {
+            guard Self.normalizedRemoteHost(remoteHost) == nil else { return false }
             revealInFinder(at: path)
             setSelectedBundleIdentifier(app.bundleIdentifier)
             return true
@@ -130,6 +132,7 @@ final class IDEIntegrationService: ObservableObject {
         let commands = Self.launchCommands(
             for: app,
             projectPath: path,
+            remoteHost: remoteHost,
             editorLocation: editorLocation(filePath: filePath, line: line, column: column),
             availableCLICommands: availableCLICommands()
         )
@@ -154,21 +157,34 @@ final class IDEIntegrationService: ObservableObject {
     static func launchCommands(
         for ide: IDEApplication,
         projectPath: String,
+        remoteHost: String? = nil,
         editorLocation: EditorLocation?,
         availableCLICommands: [String: String]
     ) -> [LaunchCommand] {
+        let normalizedRemoteHost = Self.normalizedRemoteHost(remoteHost)
+
         switch launchStrategy(forBundleIdentifier: ide.bundleIdentifier) {
         case let .vscodeLike(commandNames):
             if let executablePath = resolveCLIPath(commandNames: commandNames, availableCLICommands: availableCLICommands) {
+                if let normalizedRemoteHost {
+                    var args = ["--remote", "ssh-remote+\(normalizedRemoteHost)", projectPath]
+                    if let editorLocation {
+                        args += ["--goto", vscodeGotoTarget(for: editorLocation)]
+                    }
+                    return [.init(executablePath: executablePath, arguments: args)]
+                }
+
                 var args = [projectPath]
                 if let editorLocation {
                     args += ["--goto", vscodeGotoTarget(for: editorLocation)]
                 }
                 return [.init(executablePath: executablePath, arguments: args)]
             }
+            guard normalizedRemoteHost == nil else { return [] }
             return [genericOpenCommand(for: ide, projectPath: projectPath, filePath: editorLocation?.filePath)]
 
         case let .zed(commandNames):
+            guard normalizedRemoteHost == nil else { return [] }
             if let executablePath = resolveCLIPath(commandNames: commandNames, availableCLICommands: availableCLICommands) {
                 var args = [projectPath]
                 if let editorLocation {
@@ -179,11 +195,29 @@ final class IDEIntegrationService: ObservableObject {
             return [genericOpenCommand(for: ide, projectPath: projectPath, filePath: editorLocation?.filePath)]
 
         case .jetbrains:
+            guard normalizedRemoteHost == nil else { return [] }
             return [genericOpenCommand(for: ide, projectPath: projectPath, filePath: editorLocation?.filePath)]
 
         case .generic:
+            guard normalizedRemoteHost == nil else { return [] }
             return [genericOpenCommand(for: ide, projectPath: projectPath, filePath: editorLocation?.filePath)]
         }
+    }
+
+    func canOpenProject(remoteHost: String?, in ide: IDEApplication) -> Bool {
+        guard Self.normalizedRemoteHost(remoteHost) != nil else { return true }
+        return Self.remoteLaunchCLIPath(for: ide, availableCLICommands: availableCLICommands()) != nil
+    }
+
+    nonisolated static func supportsRemoteOpening(_ ide: IDEApplication, availableCLICommands: [String: String]) -> Bool {
+        remoteLaunchCLIPath(for: ide, availableCLICommands: availableCLICommands) != nil
+    }
+
+    nonisolated static func normalizedRemoteHost(_ remoteHost: String?) -> String? {
+        guard let trimmed = remoteHost?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty
+        else { return nil }
+        return trimmed
     }
 
     nonisolated static func openTargetArguments(projectPath: String, filePath: String?) -> [String] {
@@ -254,6 +288,8 @@ final class IDEIntegrationService: ObservableObject {
     }
 
     private static func launch(commands: [LaunchCommand]) -> Bool {
+        guard !commands.isEmpty else { return false }
+
         for command in commands {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: command.executablePath)
@@ -453,6 +489,16 @@ final class IDEIntegrationService: ObservableObject {
             return .jetbrains
         }
         return .generic
+    }
+
+    nonisolated private static func remoteLaunchCLIPath(
+        for ide: IDEApplication,
+        availableCLICommands: [String: String]
+    ) -> String? {
+        guard case let .vscodeLike(commandNames) = launchStrategy(forBundleIdentifier: ide.bundleIdentifier) else {
+            return nil
+        }
+        return resolveCLIPath(commandNames: commandNames, availableCLICommands: availableCLICommands)
     }
 
     nonisolated private static func genericOpenCommand(for ide: IDEApplication, projectPath: String, filePath: String?) -> LaunchCommand {

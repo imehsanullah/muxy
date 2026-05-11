@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct OpenInIDEControl: View {
     let projectPath: String?
+    let remoteHost: String?
     let filePath: String?
     let cursorProvider: () -> (line: Int?, column: Int?)
     var compact = true
@@ -99,7 +100,7 @@ struct OpenInIDEControl: View {
 
     private var menuPopoverContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if let projectPath {
+            if let projectPath, !isRemoteProject {
                 menuActionRow(
                     appURL: IDEIntegrationService.finderAppURL,
                     fallbackSystemName: "folder",
@@ -115,7 +116,7 @@ struct OpenInIDEControl: View {
             }
 
             if installedApps.isEmpty {
-                Text("No supported IDEs found")
+                Text(isRemoteProject ? "No Remote SSH-capable IDEs found" : "No supported IDEs found")
                     .font(.system(size: UIMetrics.fontBody))
                     .foregroundStyle(MuxyTheme.fgMuted)
                     .padding(.leading, UIMetrics.spacing5)
@@ -152,11 +153,22 @@ struct OpenInIDEControl: View {
     }
 
     private var installedApps: [IDEIntegrationService.IDEApplication] {
-        ideService.installedApps
+        ideService.installedApps.filter {
+            ideService.canOpenProject(remoteHost: remoteHost, in: $0)
+        }
     }
 
     private var defaultIDE: IDEIntegrationService.IDEApplication? {
-        ideService.defaultIDE
+        if let defaultIDE = ideService.defaultIDE,
+           ideService.canOpenProject(remoteHost: remoteHost, in: defaultIDE)
+        {
+            return defaultIDE
+        }
+        return installedApps.first
+    }
+
+    private var isRemoteProject: Bool {
+        IDEIntegrationService.normalizedRemoteHost(remoteHost) != nil
     }
 
     private var editorApps: [IDEIntegrationService.IDEApplication] {
@@ -191,14 +203,17 @@ struct OpenInIDEControl: View {
     private var helpText: String {
         guard projectPath != nil else { return "Open a project to enable IDE launching" }
         if let defaultIDE {
-            return "Open in \(defaultIDE.displayName)"
+            return isRemoteProject ? "Open remote project in \(defaultIDE.displayName)" : "Open in \(defaultIDE.displayName)"
         }
-        return installedApps.isEmpty ? "No supported IDEs found" : "No default IDE available"
+        if installedApps.isEmpty {
+            return isRemoteProject ? "No Remote SSH-capable IDEs found" : "No supported IDEs found"
+        }
+        return "No default IDE available"
     }
 
     private var menuHelpText: String {
         guard projectPath != nil else { return "Open a project to choose an IDE" }
-        return "Choose IDE"
+        return isRemoteProject ? "Choose Remote SSH IDE" : "Choose IDE"
     }
 
     private var primaryForeground: Color {
@@ -225,6 +240,7 @@ struct OpenInIDEControl: View {
         let cursor = cursorProvider()
         _ = ideService.openProject(
             at: projectPath,
+            remoteHost: remoteHost,
             highlightingFileAt: filePath,
             line: cursor.line,
             column: cursor.column,

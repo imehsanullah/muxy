@@ -31,7 +31,7 @@ classDiagram
   TabArea "1" --> "*" TerminalTab
 ```
 
-A workspace tree is keyed by `WorktreeKey(projectID, worktreeID)`. `AppState.activeWorktreeID[projectID]` tracks the visible worktree per project. Remote projects use the same primary worktree model, but `Project.remoteHost` is threaded into `TabArea`, `TerminalPaneState`, and `VCSTabState` so terminal, Quick Open, and source-control operations run through SSH while the stored path remains the remote repository path. Reducer side effects carry both local pane teardown and remote tmux session cleanup so UI state removal and SSH resource cleanup stay coordinated.
+A workspace tree is keyed by `WorktreeKey(projectID, worktreeID)`. `AppState.activeWorktreeID[projectID]` tracks the visible worktree per project. Remote projects use the same primary worktree model, but `Project.remoteHost` is threaded into `TabArea`, `TerminalPaneState`, `VCSTabState`, and IDE launching so terminal, Quick Open, source-control, and VS Code-compatible Remote SSH open operations run against the SSH host while the stored path remains the remote repository path. Reducer side effects carry both local pane teardown and remote tmux session cleanup so UI state removal and SSH resource cleanup stay coordinated.
 
 ## Persistence
 

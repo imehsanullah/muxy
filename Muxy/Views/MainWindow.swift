@@ -376,6 +376,7 @@ struct MainWindow: View {
                 showVCSButton: true,
                 showDevelopmentBadge: AppEnvironment.isDevelopment,
                 openInIDEProjectPath: activeWorktreePath(for: project),
+                openInIDERemoteHost: project.remoteHost,
                 openInIDEFilePath: area.activeTab?.content.editorState?.filePath,
                 openInIDECursorProvider: {
                     guard let editorState = appState.activeTab(for: project.id)?.content.editorState else {
@@ -471,6 +472,7 @@ struct MainWindow: View {
                         if let project = activeProject {
                             OpenInIDEControl(
                                 projectPath: activeWorktreePath(for: project),
+                                remoteHost: project.remoteHost,
                                 filePath: activeEditorFilePath,
                                 cursorProvider: activeEditorCursor
                             )

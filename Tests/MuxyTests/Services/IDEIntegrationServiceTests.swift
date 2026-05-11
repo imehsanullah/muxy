@@ -84,6 +84,103 @@ struct IDEIntegrationServiceTests {
         ])
     }
 
+    @Test("launchCommands uses vscode Remote SSH strategy for remote projects")
+    func launchCommandsUsesVSCodeRemoteSSHStrategyForRemoteProjects() {
+        let ide = IDEIntegrationService.IDEApplication(
+            bundleIdentifier: "com.microsoft.VSCode",
+            displayName: "VS Code",
+            appURL: URL(fileURLWithPath: "/Applications/Visual Studio Code.app"),
+            symbolName: "chevron.left.forwardslash.chevron.right",
+            rank: 10,
+            group: .editor
+        )
+        let location = IDEIntegrationService.EditorLocation(
+            filePath: "/home/dev/repo/Sources/App.swift",
+            line: 12,
+            column: 7
+        )
+
+        let commands = IDEIntegrationService.launchCommands(
+            for: ide,
+            projectPath: "/home/dev/repo",
+            remoteHost: " devbox ",
+            editorLocation: location,
+            availableCLICommands: ["code": "/usr/local/bin/code"]
+        )
+
+        #expect(commands == [
+            .init(
+                executablePath: "/usr/local/bin/code",
+                arguments: [
+                    "--remote",
+                    "ssh-remote+devbox",
+                    "/home/dev/repo",
+                    "--goto",
+                    "/home/dev/repo/Sources/App.swift:12:7",
+                ]
+            ),
+        ])
+    }
+
+    @Test("launchCommands does not use local-only launchers for remote projects")
+    func launchCommandsDoesNotUseLocalOnlyLaunchersForRemoteProjects() {
+        let zed = IDEIntegrationService.IDEApplication(
+            bundleIdentifier: "dev.zed.Zed",
+            displayName: "Zed",
+            appURL: URL(fileURLWithPath: "/Applications/Zed.app"),
+            symbolName: "bolt.horizontal",
+            rank: 14,
+            group: .editor
+        )
+        let phpStorm = IDEIntegrationService.IDEApplication(
+            bundleIdentifier: "com.jetbrains.PhpStorm",
+            displayName: "PhpStorm",
+            appURL: URL(fileURLWithPath: "/Applications/PhpStorm.app"),
+            symbolName: "chevron.left.forwardslash.chevron.right",
+            rank: 17,
+            group: .editor
+        )
+
+        #expect(IDEIntegrationService.launchCommands(
+            for: zed,
+            projectPath: "/home/dev/repo",
+            remoteHost: "devbox",
+            editorLocation: nil,
+            availableCLICommands: ["zed": "/usr/local/bin/zed"]
+        ).isEmpty)
+        #expect(IDEIntegrationService.launchCommands(
+            for: phpStorm,
+            projectPath: "/home/dev/repo",
+            remoteHost: "devbox",
+            editorLocation: nil,
+            availableCLICommands: ["phpstorm": "/usr/local/bin/phpstorm"]
+        ).isEmpty)
+    }
+
+    @Test("supportsRemoteOpening requires a vscode-compatible CLI")
+    func supportsRemoteOpeningRequiresVSCodeCompatibleCLI() {
+        let vscode = IDEIntegrationService.IDEApplication(
+            bundleIdentifier: "com.microsoft.VSCode",
+            displayName: "VS Code",
+            appURL: URL(fileURLWithPath: "/Applications/Visual Studio Code.app"),
+            symbolName: "chevron.left.forwardslash.chevron.right",
+            rank: 10,
+            group: .editor
+        )
+        let zed = IDEIntegrationService.IDEApplication(
+            bundleIdentifier: "dev.zed.Zed",
+            displayName: "Zed",
+            appURL: URL(fileURLWithPath: "/Applications/Zed.app"),
+            symbolName: "bolt.horizontal",
+            rank: 14,
+            group: .editor
+        )
+
+        #expect(IDEIntegrationService.supportsRemoteOpening(vscode, availableCLICommands: ["code": "/usr/local/bin/code"]))
+        #expect(!IDEIntegrationService.supportsRemoteOpening(vscode, availableCLICommands: [:]))
+        #expect(!IDEIntegrationService.supportsRemoteOpening(zed, availableCLICommands: ["zed": "/usr/local/bin/zed"]))
+    }
+
     @Test("launchCommands uses zed CLI when available")
     func launchCommandsUsesZedCLIWhenAvailable() {
         let ide = IDEIntegrationService.IDEApplication(
