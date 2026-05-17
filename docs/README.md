@@ -37,6 +37,7 @@ flowchart TB
 | [Layouts](features/layouts/README.md) | Declarative `.muxy/layouts/*.yaml` workspaces |
 | [Notifications](features/notifications.md) | OSC sequences, hooks, socket API |
 | [AI Usage](features/ai-usage.md) | Claude Code, Copilot, Codex, Cursor, and more |
+| [Agent Vault](features/agent-vault.md) | Browse and resume local coding-agent sessions |
 | [Themes](features/themes.md) | Theme picker and Ghostty config |
 | [Remote Server](features/remote-server/README.md) | WebSocket API for mobile clients |
 

@@ -12,6 +12,8 @@ final class GhosttyTerminalNSView: NSView {
     var onWorkingDirectoryChange: ((String) -> Void)?
     var onFocus: (() -> Void)?
     var onExternalDragHoverChange: ((Bool) -> Void)?
+    var onAgentVaultDragHoverChange: ((DropZone?) -> Void)?
+    var onAgentVaultSessionDrop: ((AgentVaultSession, DropZone) -> Bool)?
     var onProcessExit: (() -> Void)?
     var onSplitRequest: ((SplitDirection, SplitPosition) -> Void)?
     var onSearchStart: ((String?) -> Void)?
@@ -54,7 +56,7 @@ final class GhosttyTerminalNSView: NSView {
         super.init(frame: .zero)
         wantsLayer = true
         setupTrackingArea()
-        registerForDraggedTypes([.fileURL, .string])
+        registerForDraggedTypes([.fileURL, .string, AgentVaultDragPayload.pasteboardType])
         setAccessibilityRole(.textArea)
         setAccessibilityRoleDescription("Terminal")
         let directoryName = URL(fileURLWithPath: workingDirectory).lastPathComponent
@@ -188,6 +190,8 @@ final class GhosttyTerminalNSView: NSView {
         onTitleChange = nil
         onFocus = nil
         onExternalDragHoverChange = nil
+        onAgentVaultDragHoverChange = nil
+        onAgentVaultSessionDrop = nil
         onProcessExit = nil
         onSplitRequest = nil
         onSearchStart = nil
@@ -1118,21 +1122,37 @@ final class GhosttyTerminalNSView: NSView {
 
 extension GhosttyTerminalNSView {
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        if hasAgentVaultSession(sender) {
+            onAgentVaultDragHoverChange?(agentVaultDropZone(from: sender))
+            return .move
+        }
         guard !droppedPaths(from: sender).isEmpty else { return [] }
         onExternalDragHoverChange?(true)
         return .copy
     }
 
     override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        droppedPaths(from: sender).isEmpty ? [] : .copy
+        if hasAgentVaultSession(sender) {
+            onAgentVaultDragHoverChange?(agentVaultDropZone(from: sender))
+            return .move
+        }
+        return droppedPaths(from: sender).isEmpty ? [] : .copy
     }
 
     override func draggingExited(_: (any NSDraggingInfo)?) {
         onExternalDragHoverChange?(false)
+        onAgentVaultDragHoverChange?(nil)
     }
 
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
         onExternalDragHoverChange?(false)
+        onAgentVaultDragHoverChange?(nil)
+        if hasAgentVaultSession(sender),
+           let session = AgentVaultDragPayload.session(from: sender.draggingPasteboard)
+        {
+            AgentVaultDragPayload.clearMirroredSessionDrag()
+            return onAgentVaultSessionDrop?(session, agentVaultDropZone(from: sender)) ?? false
+        }
         let paths = droppedPaths(from: sender)
         guard !paths.isEmpty else { return false }
         let text = paths.map { ShellEscaper.escape($0) }.joined(separator: " ")
@@ -1157,6 +1177,33 @@ extension GhosttyTerminalNSView {
         let pasteboard = sender.draggingPasteboard
         let urls = (pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL]) ?? []
         return DroppedPathsParser.parse(fileURLs: urls, plainString: pasteboard.string(forType: .string))
+    }
+
+    private func hasAgentVaultSession(_ sender: any NSDraggingInfo) -> Bool {
+        AgentVaultDragPayload.containsSession(in: sender.draggingPasteboard)
+            || sender.draggingSource != nil && AgentVaultDragPayload.containsMirroredSessionDrag()
+    }
+
+    private func agentVaultDropZone(from sender: any NSDraggingInfo) -> DropZone {
+        let point = convert(sender.draggingLocation, from: nil)
+        guard bounds.width > 0, bounds.height > 0 else { return .center }
+        let relX = (point.x - bounds.minX) / bounds.width
+        let relY = (point.y - bounds.minY) / bounds.height
+        let edgeThreshold: CGFloat = 0.3
+
+        if relX < edgeThreshold {
+            return .left
+        }
+        if relX > 1 - edgeThreshold {
+            return .right
+        }
+        if relY < edgeThreshold {
+            return .bottom
+        }
+        if relY > 1 - edgeThreshold {
+            return .top
+        }
+        return .center
     }
 }
 

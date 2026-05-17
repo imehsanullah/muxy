@@ -101,6 +101,7 @@ struct PaneTabStrip: View {
                         NotificationCenter.default.post(name: .quickOpen, object: nil)
                     }
                     .help(shortcutTooltip("Quick Open", for: .quickOpen))
+                    AgentVaultToolbarItem()
                     FileDiffIconButton(action: onCreateVCSTab)
                         .help(shortcutTooltip("Source Control", for: .openVCSTab))
                     FileTreeIconButton {

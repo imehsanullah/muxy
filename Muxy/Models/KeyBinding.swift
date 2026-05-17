@@ -58,6 +58,7 @@ enum ShortcutAction: String, Codable, CaseIterable, Identifiable {
     case saveFile
     case toggleSidebar
     case toggleFileTree
+    case toggleAgentVault
     case toggleAIUsage
     case navigateBack
     case navigateForward
@@ -112,6 +113,7 @@ enum ShortcutAction: String, Codable, CaseIterable, Identifiable {
         .saveFile,
         .toggleSidebar,
         .toggleFileTree,
+        .toggleAgentVault,
         .toggleAIUsage,
         .navigateBack,
         .navigateForward,
@@ -179,6 +181,7 @@ enum ShortcutAction: String, Codable, CaseIterable, Identifiable {
         case .saveFile: ShortcutMetadata(displayName: "Save File", category: "Editor", scope: .mainWindow)
         case .toggleSidebar: ShortcutMetadata(displayName: "Toggle Sidebar", category: "App", scope: .mainWindow)
         case .toggleFileTree: ShortcutMetadata(displayName: "Toggle File Tree", category: "App", scope: .mainWindow)
+        case .toggleAgentVault: ShortcutMetadata(displayName: "Toggle Agent Vault", category: "App", scope: .mainWindow)
         case .toggleAIUsage: ShortcutMetadata(displayName: "Toggle AI Usage", category: "App", scope: .mainWindow)
         case .navigateBack: ShortcutMetadata(displayName: "Navigate Back", category: "Navigation", scope: .mainWindow)
         case .navigateForward: ShortcutMetadata(displayName: "Navigate Forward", category: "Navigation", scope: .mainWindow)
@@ -302,6 +305,7 @@ struct KeyBinding: Codable, Identifiable {
         Self(action: .saveFile, combo: KeyCombo(key: "s", command: true)),
         Self(action: .toggleSidebar, combo: KeyCombo(key: "b", command: true)),
         Self(action: .toggleFileTree, combo: KeyCombo(key: "e", command: true)),
+        Self(action: .toggleAgentVault, combo: KeyCombo(key: "b", command: true, option: true)),
         Self(action: .toggleAIUsage, combo: KeyCombo(key: "l", command: true)),
         Self(action: .navigateBack, combo: KeyCombo(key: KeyCombo.leftArrowKey, command: true, control: true)),
         Self(action: .navigateForward, combo: KeyCombo(key: KeyCombo.rightArrowKey, command: true, control: true)),

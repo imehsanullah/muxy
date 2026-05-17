@@ -88,6 +88,12 @@ struct KeyBindingTests {
         #expect(combos[.cyclePreviousTabAcrossPanes] == KeyCombo(key: "tab", shift: true, control: true))
     }
 
+    @Test("KeyBinding.defaults includes Agent Vault shortcut")
+    func defaultsIncludesAgentVaultShortcut() {
+        let combos = Dictionary(uniqueKeysWithValues: KeyBinding.defaults.map { ($0.action, $0.combo) })
+        #expect(combos[.toggleAgentVault] == KeyCombo(key: "b", command: true, option: true))
+    }
+
     @Test("KeyBinding Codable round-trip")
     func codableRoundTrip() throws {
         let binding = KeyBinding(

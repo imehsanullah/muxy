@@ -19,7 +19,10 @@ struct TabAreaView: View {
     let onDropAction: (TabDragCoordinator.DropResult) -> Void
     @Environment(TabDragCoordinator.self) private var dragCoordinator
     @Environment(AppState.self) private var appState
+    @Environment(ProjectStore.self) private var projectStore
+    @Environment(WorktreeStore.self) private var worktreeStore
     @State private var isExternalDragHovering = false
+    @State private var agentVaultDropZone: DropZone?
     @State private var externalDragHideTask: Task<Void, any Error>?
 
     private static let externalDragHideDebounce: Duration = .milliseconds(80)
@@ -104,18 +107,36 @@ struct TabAreaView: View {
                                 direction: direction,
                                 position: position
                             )))
+                        },
+                        onAgentVaultDragHover: { zone in
+                            agentVaultDropZone = zone
+                        },
+                        onAgentVaultSessionDrop: { session, zone in
+                            resumeAgentVaultSession(session, zone: zone)
                         }
                     )
                     .zIndex(isActive ? 1 : 0)
                     .opacity(isActive ? 1 : 0)
                     .allowsHitTesting(isActive)
                 }
+                AgentVaultDropTargetOverlay(
+                    onHover: { zone in
+                        agentVaultDropZone = zone
+                    },
+                    onDrop: { session, zone in
+                        resumeAgentVaultSession(session, zone: zone)
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .zIndex(2)
             }
             .overlay {
                 if dragCoordinator.activeDrag != nil, dragCoordinator.hoveredAreaID == area.id,
                    let zone = dragCoordinator.hoveredZone
                 {
                     DropZoneHighlight(zone: zone)
+                } else if let agentVaultDropZone {
+                    DropZoneHighlight(zone: agentVaultDropZone)
                 }
             }
         }
@@ -125,6 +146,7 @@ struct TabAreaView: View {
             }
         }
         .animation(.easeInOut(duration: 0.15), value: isExternalDragHovering)
+        .animation(.easeInOut(duration: 0.15), value: agentVaultDropZone)
         .onReceive(NotificationCenter.default.publisher(for: .externalDragHoverChanged)) { note in
             handleExternalDragHover(note: note)
         }
@@ -180,6 +202,19 @@ struct TabAreaView: View {
             isExternalDragHovering = false
         }
     }
+
+    private func resumeAgentVaultSession(_ session: AgentVaultSession, zone: DropZone) -> Bool {
+        AgentVaultResumeCoordinator.resume(
+            session,
+            preferredAreaID: area.id,
+            projectIDOverride: projectID,
+            dropZone: zone,
+            appState: appState,
+            projectStore: projectStore,
+            worktreeStore: worktreeStore
+        )
+        return true
+    }
 }
 
 private struct ExternalDragHoverHighlight: View {
@@ -203,6 +238,8 @@ private struct TabContentView: View {
     let onFocus: () -> Void
     let onProcessExit: () -> Void
     let onSplitRequest: (SplitDirection, SplitPosition) -> Void
+    let onAgentVaultDragHover: (DropZone?) -> Void
+    let onAgentVaultSessionDrop: (AgentVaultSession, DropZone) -> Bool
 
     var body: some View {
         switch tab.content {
@@ -214,7 +251,9 @@ private struct TabContentView: View {
                 areaID: areaID,
                 onFocus: onFocus,
                 onProcessExit: onProcessExit,
-                onSplitRequest: onSplitRequest
+                onSplitRequest: onSplitRequest,
+                onAgentVaultDragHover: onAgentVaultDragHover,
+                onAgentVaultSessionDrop: onAgentVaultSessionDrop
             )
         case let .vcs(vcsState):
             VCSTabView(state: vcsState, focused: focused, onFocus: onFocus)

@@ -465,6 +465,35 @@ struct WorkspaceReducerTests {
         #expect(state.focusedAreaID[key] != originalAreaID)
     }
 
+    @Test("createCommandTabSplit creates split with command tab")
+    func createCommandTabSplit() {
+        let projectID = UUID()
+        let worktreeID = UUID()
+        var state = makeState(projectID: projectID, worktreeID: worktreeID)
+        let key = WorktreeKey(projectID: projectID, worktreeID: worktreeID)
+        let originalAreaID = state.focusedAreaID[key]!
+
+        _ = WorkspaceReducer.reduce(
+            action: .createCommandTabSplit(AppState.CommandTabSplitRequest(
+                projectID: projectID,
+                areaID: originalAreaID,
+                name: "Claude Code",
+                command: "claude --resume abc",
+                split: SplitPlacement(direction: .horizontal, position: .second)
+            )),
+            state: &state
+        )
+
+        let root = state.workspaceRoots[key]!
+        let focusedArea = root.findArea(id: state.focusedAreaID[key]!)
+        #expect(root.allAreas().count == 2)
+        #expect(state.focusedAreaID[key] != originalAreaID)
+        #expect(focusedArea?.tabs.count == 1)
+        #expect(focusedArea?.activeTab?.content.pane?.title == "Claude Code")
+        #expect(focusedArea?.activeTab?.content.pane?.startupCommand == "claude --resume abc")
+        #expect(focusedArea?.activeTab?.content.pane?.startupCommandInteractive == true)
+    }
+
     @Test("closeArea removes area and focuses from history")
     func closeArea() {
         let projectID = UUID()

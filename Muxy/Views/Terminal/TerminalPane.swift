@@ -9,6 +9,8 @@ struct TerminalPane: View {
     let onFocus: () -> Void
     let onProcessExit: () -> Void
     let onSplitRequest: (SplitDirection, SplitPosition) -> Void
+    let onAgentVaultDragHover: (DropZone?) -> Void
+    let onAgentVaultSessionDrop: (AgentVaultSession, DropZone) -> Bool
 
     @Bindable private var ownership = PaneOwnershipStore.shared
     @Environment(\.overlayActive) private var overlayActive
@@ -43,7 +45,9 @@ struct TerminalPane: View {
                 areaID: areaID,
                 onFocus: onFocus,
                 onProcessExit: onProcessExit,
-                onSplitRequest: onSplitRequest
+                onSplitRequest: onSplitRequest,
+                onAgentVaultDragHover: onAgentVaultDragHover,
+                onAgentVaultSessionDrop: onAgentVaultSessionDrop
             )
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Terminal")
@@ -193,6 +197,8 @@ struct TerminalBridge: NSViewRepresentable {
     let onFocus: () -> Void
     let onProcessExit: () -> Void
     let onSplitRequest: (SplitDirection, SplitPosition) -> Void
+    let onAgentVaultDragHover: (DropZone?) -> Void
+    let onAgentVaultSessionDrop: (AgentVaultSession, DropZone) -> Bool
     @Environment(\.overlayActive) private var overlayActive
     @Environment(\.activeWorktreeKey) private var worktreeKey
 
@@ -222,6 +228,8 @@ struct TerminalBridge: NSViewRepresentable {
         view.onFocus = onFocus
         view.onProcessExit = onProcessExit
         view.onSplitRequest = onSplitRequest
+        view.onAgentVaultDragHoverChange = onAgentVaultDragHover
+        view.onAgentVaultSessionDrop = onAgentVaultSessionDrop
         view.onExternalDragHoverChange = makeExternalDragHoverHandler(areaID: areaID)
         view.onTitleChange = { [weak state] title in
             DispatchQueue.main.async {
@@ -260,6 +268,8 @@ struct TerminalBridge: NSViewRepresentable {
         nsView.onFocus = onFocus
         nsView.onProcessExit = onProcessExit
         nsView.onSplitRequest = onSplitRequest
+        nsView.onAgentVaultDragHoverChange = onAgentVaultDragHover
+        nsView.onAgentVaultSessionDrop = onAgentVaultSessionDrop
         nsView.onExternalDragHoverChange = makeExternalDragHoverHandler(areaID: areaID)
         nsView.onTitleChange = { [weak state] title in
             DispatchQueue.main.async {

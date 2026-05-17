@@ -156,6 +156,9 @@ struct ShortcutActionDispatcher {
         case .toggleFileTree:
             notificationCenter.post(name: .toggleFileTree, object: nil)
             return true
+        case .toggleAgentVault:
+            notificationCenter.post(name: .toggleAgentVault, object: nil)
+            return true
         case .toggleAIUsage:
             guard AIUsageSettingsStore.isUsageEnabled() else { return false }
             notificationCenter.post(name: .toggleAIUsage, object: nil)

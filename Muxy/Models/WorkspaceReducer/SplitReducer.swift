@@ -16,6 +16,29 @@ enum SplitReducer {
         FocusReducer.focusArea(newAreaID, key: key, state: &state)
     }
 
+    static func createCommandTabSplit(_ request: AppState.CommandTabSplitRequest, state: inout WorkspaceState) {
+        guard let key = WorkspaceReducerShared.activeKey(projectID: request.projectID, state: state),
+              let root = state.workspaceRoots[key],
+              let area = root.findArea(id: request.areaID),
+              let tab = TabArea.commandTab(
+                  projectPath: area.projectPath,
+                  remoteHost: area.remoteHost,
+                  name: request.name,
+                  command: request.command
+              )
+        else { return }
+
+        let (newRoot, newAreaID) = root.splittingWithTab(
+            areaID: request.areaID,
+            direction: request.split.direction,
+            position: request.split.position,
+            tab: tab
+        )
+        state.workspaceRoots[key] = newRoot
+        guard let newAreaID else { return }
+        FocusReducer.focusArea(newAreaID, key: key, state: &state)
+    }
+
     static func closeArea(
         _ areaID: UUID,
         key: WorktreeKey,

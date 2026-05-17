@@ -21,6 +21,12 @@ struct MainWindow: View {
         static let maxWidth: CGFloat = 600
     }
 
+    private enum AgentVaultPanelLayout {
+        static let minWidth: CGFloat = 280
+        static let defaultWidth: CGFloat = 370
+        static let maxWidth: CGFloat = 700
+    }
+
     private enum RichInputPanelLayout {
         static let minWidth: CGFloat = 280
         static let defaultWidth: CGFloat = 380
@@ -33,6 +39,7 @@ struct MainWindow: View {
     private enum SidePanelKind {
         case vcs
         case fileTree
+        case agentVault
     }
 
     private enum CloseConfirmationKind {
@@ -68,6 +75,8 @@ struct MainWindow: View {
     @State private var fileTreePanelVisible = false
     @AppStorage("muxy.fileTreeWidth") private var fileTreePanelWidth: Double = .init(FileTreeLayout.defaultWidth)
     @State private var fileTreeStates: [WorktreeKey: FileTreeState] = [:]
+    @State private var agentVaultPanelVisible = false
+    @AppStorage("muxy.agentVaultPanelWidth") private var agentVaultPanelWidth: Double = .init(AgentVaultPanelLayout.defaultWidth)
     @State private var richInputPanelVisible = false
     @State private var panelToRestoreAfterRichInput: SidePanelKind?
     @AppStorage("muxy.richInputPanelWidth") private var richInputPanelWidth: Double = .init(RichInputPanelLayout.defaultWidth)
@@ -301,6 +310,7 @@ struct MainWindow: View {
         .modifier(SidePanelNotificationListeners(
             onToggleAttachedVCS: { toggleAttachedVCSPanel() },
             onToggleFileTree: { toggleFileTreePanel() },
+            onToggleAgentVault: { toggleAgentVaultPanel() },
             onToggleRichInput: { toggleRichInputPanel() }
         ))
         .onChange(of: vcsPruneSignature) {
@@ -487,6 +497,7 @@ struct MainWindow: View {
                                 NotificationCenter.default.post(name: .quickOpen, object: nil)
                             }
                             .help("Quick Open (\(KeyBindingStore.shared.combo(for: .quickOpen).displayString))")
+                            AgentVaultToolbarItem()
                             FileDiffIconButton {
                                 openVCS(for: project)
                             }
@@ -848,6 +859,28 @@ struct MainWindow: View {
                 .id("\(treeState.remoteHost ?? ""):\(treeState.rootPath)")
                 .frame(width: CGFloat(fileTreePanelWidth))
             }
+        } else if agentVaultPanelVisible {
+            HStack(spacing: 0) {
+                sidePanelResizeHandle { delta in
+                    let next = agentVaultPanelWidth - Double(delta)
+                    agentVaultPanelWidth = max(
+                        Double(AgentVaultPanelLayout.minWidth),
+                        min(Double(AgentVaultPanelLayout.maxWidth), next)
+                    )
+                }
+                AgentVaultSidePanel(
+                    sessions: AgentVaultStore.shared.sessions,
+                    isLoading: AgentVaultStore.shared.isLoading,
+                    lastRefreshDate: AgentVaultStore.shared.lastRefreshDate,
+                    onRefresh: refreshAgentVault,
+                    onClose: closeAgentVaultPanel,
+                    onResume: resumeAgentVaultSession,
+                    canResume: canResumeAgentVaultSession,
+                    onDeleteSession: deleteAgentVaultSession,
+                    onDeleteSessions: deleteAgentVaultSessions
+                )
+                .frame(width: CGFloat(agentVaultPanelWidth))
+            }
         }
     }
 
@@ -949,6 +982,7 @@ struct MainWindow: View {
         vcsPanelVisible = isShowing
         if isShowing {
             fileTreePanelVisible = false
+            agentVaultPanelVisible = false
             panelToRestoreAfterRichInput = nil
             closeRichInputPanel()
         }
@@ -968,11 +1002,89 @@ struct MainWindow: View {
         fileTreePanelVisible = isShowing
         if isShowing {
             vcsPanelVisible = false
+            agentVaultPanelVisible = false
             panelToRestoreAfterRichInput = nil
             closeRichInputPanel()
         } else {
             NotificationCenter.default.post(name: .refocusActiveTerminal, object: nil)
         }
+    }
+
+    private func toggleAgentVaultPanel() {
+        let isShowing = !agentVaultPanelVisible
+        agentVaultPanelVisible = isShowing
+        if isShowing {
+            vcsPanelVisible = false
+            fileTreePanelVisible = false
+            panelToRestoreAfterRichInput = nil
+            closeRichInputPanel()
+            refreshAgentVaultIfNeeded()
+        } else {
+            NotificationCenter.default.post(name: .refocusActiveTerminal, object: nil)
+        }
+    }
+
+    private func closeAgentVaultPanel() {
+        agentVaultPanelVisible = false
+        NotificationCenter.default.post(name: .refocusActiveTerminal, object: nil)
+    }
+
+    private func refreshAgentVaultIfNeeded() {
+        Task {
+            await AgentVaultStore.shared.refreshIfNeeded()
+        }
+    }
+
+    private func refreshAgentVault() {
+        Task {
+            await AgentVaultStore.shared.refresh()
+        }
+    }
+
+    private func canResumeAgentVaultSession(_ session: AgentVaultSession) -> Bool {
+        AgentVaultResumeCoordinator.canResume(
+            session,
+            appState: appState,
+            projectStore: projectStore,
+            worktreeStore: worktreeStore
+        )
+    }
+
+    private func resumeAgentVaultSession(_ session: AgentVaultSession) {
+        AgentVaultResumeCoordinator.resume(
+            session,
+            preferredAreaID: activeProject.flatMap { appState.focusedAreaID(for: $0.id) },
+            appState: appState,
+            projectStore: projectStore,
+            worktreeStore: worktreeStore
+        )
+    }
+
+    private func deleteAgentVaultSession(_ session: AgentVaultSession) {
+        Task {
+            let result = await AgentVaultStore.shared.deleteSession(session)
+            presentAgentVaultDeletionResult(result)
+        }
+    }
+
+    private func deleteAgentVaultSessions(_ sessions: [AgentVaultSession]) {
+        Task {
+            let result = await AgentVaultStore.shared.deleteSessions(sessions)
+            presentAgentVaultDeletionResult(result)
+        }
+    }
+
+    private func presentAgentVaultDeletionResult(_ result: AgentVaultDeletionResult) {
+        if let failure = result.failures.first, result.deletedSessionCount == 0 {
+            ToastState.shared.show("Could not delete session: \(failure.message)")
+            return
+        }
+        if !result.failures.isEmpty {
+            ToastState.shared.show("Deleted \(result.deletedSessionCount) sessions; \(result.failures.count) failed.")
+            return
+        }
+        let noun = result.deletedSessionCount == 1 ? "session" : "sessions"
+        ToastState.shared.show("Deleted \(result.deletedSessionCount) \(noun).")
     }
 
     private var activeRichInputState: RichInputState? {
@@ -1005,11 +1117,14 @@ struct MainWindow: View {
                     panelToRestoreAfterRichInput = .vcs
                 } else if fileTreePanelVisible {
                     panelToRestoreAfterRichInput = .fileTree
+                } else if agentVaultPanelVisible {
+                    panelToRestoreAfterRichInput = .agentVault
                 } else {
                     panelToRestoreAfterRichInput = nil
                 }
                 vcsPanelVisible = false
                 fileTreePanelVisible = false
+                agentVaultPanelVisible = false
             } else {
                 panelToRestoreAfterRichInput = nil
             }
@@ -1044,6 +1159,10 @@ struct MainWindow: View {
                 fileTreePanelVisible = true
                 return
             }
+        case .agentVault:
+            agentVaultPanelVisible = true
+            refreshAgentVaultIfNeeded()
+            return
         case .none:
             break
         }
@@ -1435,6 +1554,7 @@ private struct WindowOpenReceiver: View {
 private struct SidePanelNotificationListeners: ViewModifier {
     let onToggleAttachedVCS: () -> Void
     let onToggleFileTree: () -> Void
+    let onToggleAgentVault: () -> Void
     let onToggleRichInput: () -> Void
 
     func body(content: Content) -> some View {
@@ -1444,6 +1564,9 @@ private struct SidePanelNotificationListeners: ViewModifier {
             }
             .onReceive(NotificationCenter.default.publisher(for: .toggleFileTree)) { _ in
                 onToggleFileTree()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .toggleAgentVault)) { _ in
+                onToggleAgentVault()
             }
             .onReceive(NotificationCenter.default.publisher(for: .toggleRichInput)) { _ in
                 onToggleRichInput()

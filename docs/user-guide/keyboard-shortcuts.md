@@ -60,6 +60,7 @@ Mouse side buttons (3 / 4) and three‑finger horizontal trackpad swipes also na
 | Quick Open | `Cmd+P` |
 | Toggle Sidebar | `Cmd+B` |
 | Toggle File Tree | `Cmd+E` |
+| Toggle Agent Vault | `Cmd+Opt+B` |
 | Toggle AI Usage | `Cmd+L` |
 | Theme Picker | `Cmd+Shift+K` |
 | Reload Configuration | `Cmd+Shift+R` |

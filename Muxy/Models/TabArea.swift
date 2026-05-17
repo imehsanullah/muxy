@@ -69,8 +69,19 @@ final class TabArea: Identifiable {
     }
 
     func createCommandTab(name: String, command: String) {
+        guard let tab = Self.commandTab(
+            projectPath: projectPath,
+            remoteHost: remoteHost,
+            name: name,
+            command: command
+        )
+        else { return }
+        insertTab(tab)
+    }
+
+    static func commandTab(projectPath: String, remoteHost: String?, name: String, command: String) -> TerminalTab? {
         let trimmedCommand = command.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedCommand.isEmpty else { return }
+        guard !trimmedCommand.isEmpty else { return nil }
         let title = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let pane = TerminalPaneState(
             projectPath: projectPath,
@@ -79,7 +90,7 @@ final class TabArea: Identifiable {
             startupCommand: trimmedCommand,
             startupCommandInteractive: true
         )
-        insertTab(TerminalTab(pane: pane))
+        return TerminalTab(pane: pane)
     }
 
     func createVCSTab() {

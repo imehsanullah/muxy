@@ -14,6 +14,14 @@ final class AppState {
         let position: SplitPosition
     }
 
+    struct CommandTabSplitRequest {
+        let projectID: UUID
+        let areaID: UUID
+        let name: String
+        let command: String
+        let split: SplitPlacement
+    }
+
     struct DiffViewerRequest {
         let vcs: VCSTabState
         let filePath: String
@@ -28,6 +36,7 @@ final class AppState {
         case createTab(projectID: UUID, areaID: UUID?)
         case createTabInDirectory(projectID: UUID, areaID: UUID?, directory: String)
         case createCommandTab(projectID: UUID, areaID: UUID?, name: String, command: String)
+        case createCommandTabSplit(CommandTabSplitRequest)
         case createVCSTab(projectID: UUID, areaID: UUID?)
         case createEditorTab(projectID: UUID, areaID: UUID?, filePath: String, suppressInitialFocus: Bool)
         case createImageViewerTab(projectID: UUID, areaID: UUID?, filePath: String)

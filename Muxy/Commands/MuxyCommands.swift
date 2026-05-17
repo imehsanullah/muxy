@@ -395,6 +395,12 @@ struct MuxyCommands: Commands {
             }
             .shortcut(for: .toggleRichInput, store: keyBindings)
 
+            Button("Agent Vault") {
+                guard isMainWindowFocused else { return }
+                performShortcutAction(.toggleAgentVault)
+            }
+            .shortcut(for: .toggleAgentVault, store: keyBindings)
+
             Divider()
 
             Button("Open Switcher...") {

@@ -110,6 +110,9 @@ enum WorkspaceReducer {
                 state: &state
             )
 
+        case let .createCommandTabSplit(request):
+            SplitReducer.createCommandTabSplit(request, state: &state)
+
         case let .createVCSTab(projectID, areaID):
             TabReducer.createVCSTab(projectID: projectID, areaID: areaID, state: &state)
 
