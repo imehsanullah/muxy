@@ -88,8 +88,9 @@ enum RemoteTerminalSessionCommand {
         let path = RemoteCommandBuilder.quoteRemotePath(workingDirectory)
         let command = ShellEscaper.escape(creationCommand)
         let label = ShellEscaper.escape("muxy-\(name.suffix(4)) ")
-        let dimStyle = "fg=colour238,bg=default"
-        let activeStyle = "fg=colour240,bg=default"
+        let dimStyle = "fg=colour238,bg=default,nobold,noitalics,nounderscore,noreverse"
+        let activeStyle = "fg=colour240,bg=default,nobold,noitalics,nounderscore,noreverse"
+        let empty = "''"
         var tmuxEnvironment = destination.environment
         tmuxEnvironment.removeValue(forKey: "TERM")
         let persistentEnvironment = RemoteCommandBuilder.environmentPrefix(tmuxEnvironment)
@@ -103,6 +104,11 @@ enum RemoteTerminalSessionCommand {
             "tmux set-option -t \(target) history-limit 1000000",
             "tmux set-option -t \(target) status-style \(dimStyle)",
             "tmux set-option -t \(target) status-left \(label)",
+            "tmux set-option -t \(target) status-left-style \(dimStyle)",
+            "tmux set-option -t \(target) status-right \(empty)",
+            "tmux set-option -t \(target) status-right-style \(dimStyle)",
+            "tmux set-option -t \(target) message-style \(activeStyle)",
+            "tmux set-window-option -t \(target) mode-style \(activeStyle)",
             "tmux set-window-option -t \(target) allow-passthrough on 2>/dev/null || true",
             "tmux set-window-option -t \(target) window-status-style \(dimStyle)",
             "tmux set-window-option -t \(target) window-status-current-style \(activeStyle)",
