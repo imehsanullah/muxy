@@ -29,6 +29,7 @@ extension Notification.Name {
     static let toggleRichInput = Notification.Name("MuxyToggleRichInput")
     static let toggleVoiceRecording = Notification.Name("MuxyToggleVoiceRecording")
     static let toggleExtensionConsole = Notification.Name("MuxyToggleExtensionConsole")
+    static let remoteSessionsShouldReconnect = Notification.Name("MuxyRemoteSessionsShouldReconnect")
 }
 
 enum ExternalDragHoverUserInfoKey {

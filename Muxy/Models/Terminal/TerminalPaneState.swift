@@ -9,7 +9,14 @@ struct TerminalPaneLaunch: Equatable {
 @MainActor
 @Observable
 final class TerminalPaneState: Identifiable {
+    enum RemoteConnectionState: String, Equatable {
+        case connected
+        case disconnected
+        case reconnecting
+    }
+
     let id: UUID
+    let remoteSessionID: UUID
     let projectPath: String
     var title: String
     var currentWorkingDirectory: String?
@@ -18,11 +25,14 @@ final class TerminalPaneState: Identifiable {
     let closesOnStartupCommandExit: Bool
     let externalEditorFilePath: String?
     var isOffline = false
+    var remoteConnectionState: RemoteConnectionState = .connected
     let searchState = TerminalSearchState()
     @ObservationIgnored private var titleDebounceTask: Task<Void, Never>?
+    @ObservationIgnored private var reconnectGeneration = 0
 
     init(
         id: UUID = UUID(),
+        remoteSessionID: UUID = UUID(),
         projectPath: String,
         title: String = "Terminal",
         initialWorkingDirectory: String? = nil,
@@ -32,6 +42,7 @@ final class TerminalPaneState: Identifiable {
         externalEditorFilePath: String? = nil
     ) {
         self.id = id
+        self.remoteSessionID = remoteSessionID
         self.projectPath = projectPath
         self.title = title
         self.currentWorkingDirectory = initialWorkingDirectory
@@ -47,6 +58,25 @@ final class TerminalPaneState: Identifiable {
             interactive: startupCommandInteractive,
             closesOnCommandExit: closesOnStartupCommandExit
         )
+    }
+
+    func markRemoteDisconnected() {
+        reconnectGeneration += 1
+        remoteConnectionState = .disconnected
+    }
+
+    func beginRemoteReconnect() -> Int? {
+        guard remoteConnectionState != .reconnecting else { return nil }
+        reconnectGeneration += 1
+        remoteConnectionState = .reconnecting
+        return reconnectGeneration
+    }
+
+    func finishRemoteReconnect(generation: Int) {
+        guard reconnectGeneration == generation,
+              remoteConnectionState == .reconnecting
+        else { return }
+        remoteConnectionState = .connected
     }
 
     func setTitle(_ newTitle: String) {

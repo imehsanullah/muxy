@@ -33,8 +33,12 @@ enum ProjectLifecycleReducer {
         let keysToRemove = state.workspaceRoots.keys.filter { $0.projectID == projectID }
         for key in keysToRemove {
             if let root = state.workspaceRoots[key] {
-                let paneIDs = root.allAreas().flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
+                let areas = root.allAreas()
+                let paneIDs = areas.flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
                 effects.paneIDsToRemove.append(contentsOf: paneIDs)
+                for area in areas {
+                    WorkspaceReducerShared.appendRemoteSessionCleanups(from: area.tabs, key: key, effects: &effects)
+                }
             }
             state.workspaceRoots.removeValue(forKey: key)
             state.focusedAreaID.removeValue(forKey: key)
@@ -55,8 +59,12 @@ enum ProjectLifecycleReducer {
     ) {
         let key = WorktreeKey(projectID: projectID, worktreeID: worktreeID)
         if let root = state.workspaceRoots[key] {
-            let paneIDs = root.allAreas().flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
+            let areas = root.allAreas()
+            let paneIDs = areas.flatMap { area in area.tabs.compactMap { $0.content.pane?.id } }
             effects.paneIDsToRemove.append(contentsOf: paneIDs)
+            for area in areas {
+                WorkspaceReducerShared.appendRemoteSessionCleanups(from: area.tabs, key: key, effects: &effects)
+            }
         }
         state.workspaceRoots.removeValue(forKey: key)
         state.focusedAreaID.removeValue(forKey: key)

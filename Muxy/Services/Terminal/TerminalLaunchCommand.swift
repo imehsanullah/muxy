@@ -1,6 +1,13 @@
 import Darwin
 import Foundation
 
+struct RemoteTerminalLaunchConfiguration {
+    let startupCommand: String?
+    let fallbackStartupCommand: String?
+    let interactive: Bool
+    let keepsShellOpen: Bool
+}
+
 enum TerminalLaunchCommand {
     static let environmentKey = "MUXY_STARTUP_COMMAND"
 
@@ -17,34 +24,46 @@ enum TerminalLaunchCommand {
     static func remoteShellCommand(
         destination: SSHDestination,
         workingDirectory: String,
-        startupCommand: String?,
-        interactive: Bool,
-        keepsShellOpen: Bool
+        sessionName: String,
+        configuration: RemoteTerminalLaunchConfiguration
     ) -> String {
-        let inner = remoteLoginShell(
-            startupCommand: startupCommand,
-            interactive: interactive,
-            keepsShellOpen: keepsShellOpen
+        let creationCommand = remoteLoginShell(
+            startupCommand: configuration.startupCommand,
+            interactive: configuration.interactive,
+            keepsShellOpen: configuration.keepsShellOpen,
+            wrapsInExecutableShell: true
         )
-        let remoteCommand = RemoteCommandBuilder.changeDirectoryPrefix(workingDirectory) + inner
-        let command = RemoteCommandBuilder.environmentPrefix(destination.environment) + remoteCommand
-        let options = SSHDestination.terminalOptions
-        let arguments = destination.connectionArguments + options + ["-tt", destination.target, "--", command]
-        return (["/usr/bin/ssh"] + arguments.map(ShellEscaper.escape)).joined(separator: " ")
+        let fallbackCommand = remoteLoginShell(
+            startupCommand: configuration.fallbackStartupCommand,
+            interactive: configuration.interactive,
+            keepsShellOpen: configuration.keepsShellOpen
+        )
+        return RemoteTerminalSessionCommand.make(
+            destination: destination,
+            workingDirectory: workingDirectory,
+            sessionName: sessionName,
+            creationCommand: creationCommand,
+            fallbackCommand: fallbackCommand
+        )
     }
 
     private static func remoteLoginShell(
         startupCommand: String?,
         interactive: Bool,
-        keepsShellOpen: Bool
+        keepsShellOpen: Bool,
+        wrapsInExecutableShell: Bool = false
     ) -> String {
         let flags = interactive ? "-l -i" : "-l"
-        guard let startupCommand, !startupCommand.isEmpty else {
-            return "exec \"${SHELL:-/bin/sh}\" \(flags)"
+        let command: String
+        if let startupCommand, !startupCommand.isEmpty {
+            let scriptText = ShellEscaper.escape(script(keepsShellOpen: keepsShellOpen))
+            let assignment = "\(environmentKey)=\(ShellEscaper.escape(startupCommand))"
+            command = "export \(assignment); exec \"${SHELL:-/bin/sh}\" \(flags) -c \(scriptText) \"${SHELL:-/bin/sh}\""
+        } else {
+            command = "exec \"${SHELL:-/bin/sh}\" \(flags)"
         }
-        let scriptText = ShellEscaper.escape(script(keepsShellOpen: keepsShellOpen))
-        let assignment = "\(environmentKey)=\(ShellEscaper.escape(startupCommand))"
-        return "export \(assignment); exec \"${SHELL:-/bin/sh}\" \(flags) -c \(scriptText) \"${SHELL:-/bin/sh}\""
+        guard wrapsInExecutableShell else { return command }
+        return "/bin/sh -lc \(ShellEscaper.escape(command))"
     }
 
     private static func script(keepsShellOpen: Bool) -> String {

@@ -47,10 +47,17 @@ struct MuxyApp: App {
             persistence: environment.projectGroupPersistence,
             remoteDeviceStore: remoteDeviceStore
         )
+        appState.workspaceContextProvider = { [projectStore, projectGroupStore] projectID in
+            let project = projectStore.projects.first(where: { $0.id == projectID })
+                ?? projectGroupStore.remoteProjects.first(where: { $0.id == projectID })
+            guard let project else { return .local }
+            return projectGroupStore.workspaceContext(for: project)
+        }
+        appState.remoteSessionRestarter = { TerminalViewRegistry.shared.restartSession(for: $0) }
+        worktreeStore.loadAll(projects: projectGroupStore.remoteProjects)
         appState.restoreSelection(
-            projects: projectStore.projects,
-            worktrees: worktreeStore.worktrees,
-            skippingProjectIDs: projectGroupStore.activeRemoteProjectIDs
+            projects: projectStore.projects + projectGroupStore.remoteProjects,
+            worktrees: worktreeStore.worktrees
         )
         ExtensionStore.shared.loadManifestsIfNeeded()
         _appState = State(initialValue: appState)
@@ -79,6 +86,9 @@ struct MuxyApp: App {
                 .environment(ExtensionStore.shared)
                 .environment(ExtensionSettingsStore.shared)
                 .preferredColorScheme(MuxyTheme.colorScheme)
+                .onReceive(NotificationCenter.default.publisher(for: .remoteSessionsShouldReconnect)) { _ in
+                    appState.reconnectDisconnectedRemoteSessions()
+                }
                 .onAppear {
                     startDeferredServicesIfNeeded()
                     startWorktreeAutoRefreshIfNeeded()
@@ -203,6 +213,7 @@ struct MuxyApp: App {
             try? await Task.sleep(for: .seconds(2))
             UpdateService.shared.start()
             TerminalOfflineService.shared.start()
+            RemoteSessionReconnectMonitor.shared.start()
             await AIProviderRegistry.shared.installAll()
             await NotificationSocketServer.shared.awaitReady()
             ExtensionStore.shared.startAll()

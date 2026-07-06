@@ -20,6 +20,8 @@ A project can belong to one workspace at a time.
 
 Remote workspaces use reusable SSH devices from Settings. New SSH devices export `TERM=xterm-256color` by default, and the device's advanced environment settings are applied before remote terminals, git, files, worktrees, and extension commands run.
 
+Remote terminal processes persist through disconnects and app restarts when `tmux` is installed on the SSH host. See [Persistent remote terminals](terminal.md#persistent-remote-terminals) for reconnect, fallback, and cleanup behavior.
+
 ## Persistence
 
 Workspace groups are saved in:

@@ -19,7 +19,8 @@ final class TerminalViewRegistry {
         command: String? = nil,
         commandInteractive: Bool = false,
         closesOnCommandExit: Bool = true,
-        workspaceContext: WorkspaceContext = .local
+        workspaceContext: WorkspaceContext = .local,
+        remoteSessionName: String? = nil
     ) -> GhosttyTerminalNSView {
         if let existing = views[paneID] {
             return existing
@@ -29,7 +30,8 @@ final class TerminalViewRegistry {
             command: command,
             commandInteractive: commandInteractive,
             closesOnCommandExit: closesOnCommandExit,
-            workspaceContext: workspaceContext
+            workspaceContext: workspaceContext,
+            remoteSessionName: remoteSessionName
         )
         views[paneID] = view
         paneIDs[ObjectIdentifier(view)] = paneID
@@ -38,6 +40,13 @@ final class TerminalViewRegistry {
 
     func existingView(for paneID: UUID) -> GhosttyTerminalNSView? {
         views[paneID]
+    }
+
+    @discardableResult
+    func restartSession(for paneID: UUID) -> Bool {
+        guard let view = views[paneID] else { return false }
+        view.restartSession()
+        return true
     }
 
     func removeView(for paneID: UUID) {

@@ -107,6 +107,7 @@ struct TerminalTabSnapshot: Codable {
     let projectPath: String
     let paneTitle: String
     let paneID: UUID?
+    let remoteSessionID: UUID?
     let filePath: String?
     let currentWorkingDirectory: String?
     let extensionID: String?
@@ -125,6 +126,7 @@ struct TerminalTabSnapshot: Codable {
         projectPath: String,
         paneTitle: String?,
         paneID: UUID? = nil,
+        remoteSessionID: UUID? = nil,
         filePath: String? = nil,
         currentWorkingDirectory: String? = nil,
         extensionID: String? = nil,
@@ -142,6 +144,7 @@ struct TerminalTabSnapshot: Codable {
         self.projectPath = projectPath
         self.paneTitle = paneTitle ?? "Terminal"
         self.paneID = paneID
+        self.remoteSessionID = remoteSessionID
         self.filePath = filePath
         self.currentWorkingDirectory = currentWorkingDirectory
         self.extensionID = extensionID
@@ -161,6 +164,7 @@ struct TerminalTabSnapshot: Codable {
         case projectPath
         case paneTitle
         case paneID
+        case remoteSessionID
         case filePath
         case currentWorkingDirectory
         case extensionID
@@ -182,6 +186,7 @@ struct TerminalTabSnapshot: Codable {
         projectPath = try container.decode(String.self, forKey: .projectPath)
         paneTitle = try container.decodeIfPresent(String.self, forKey: .paneTitle) ?? "Terminal"
         paneID = try container.decodeIfPresent(UUID.self, forKey: .paneID)
+        remoteSessionID = try container.decodeIfPresent(UUID.self, forKey: .remoteSessionID)
         filePath = try container.decodeIfPresent(String.self, forKey: .filePath)
         currentWorkingDirectory = try container.decodeIfPresent(String.self, forKey: .currentWorkingDirectory)
         extensionID = try container.decodeIfPresent(String.self, forKey: .extensionID)

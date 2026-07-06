@@ -12,6 +12,7 @@ final class GhosttyTerminalNSView: NSView {
     private let commandInteractive: Bool
     private let commandClosesOnExit: Bool
     private let workspaceContext: WorkspaceContext
+    private let remoteSessionName: String?
     var envVars: [(key: String, value: String)] = []
     var onTitleChange: ((String) -> Void)?
     var onWorkingDirectoryChange: ((String) -> Void)?
@@ -75,13 +76,17 @@ final class GhosttyTerminalNSView: NSView {
         command: String? = nil,
         commandInteractive: Bool = false,
         closesOnCommandExit: Bool = true,
-        workspaceContext: WorkspaceContext = .local
+        workspaceContext: WorkspaceContext = .local,
+        remoteSessionName: String? = nil
     ) {
         self.workingDirectory = workingDirectory
         self.command = command
         self.commandInteractive = commandInteractive
         commandClosesOnExit = closesOnCommandExit
         self.workspaceContext = workspaceContext
+        self.remoteSessionName = remoteSessionName ?? (workspaceContext.isRemote
+            ? RemoteTerminalSessionName.sanitized("muxy-\(UUID().uuidString)")
+            : nil)
         super.init(frame: .zero)
         wantsLayer = true
         setupTrackingArea()
@@ -151,13 +156,19 @@ final class GhosttyTerminalNSView: NSView {
         surfaceCStringPointers.append(workingDirectoryPointer)
         config.working_directory = UnsafePointer(workingDirectoryPointer)
 
-        if let destination = workspaceContext.sshDestination {
+        if let destination = workspaceContext.sshDestination,
+           let remoteSessionName
+        {
             if let remoteWrapped = strdup(TerminalLaunchCommand.remoteShellCommand(
                 destination: destination,
                 workingDirectory: workingDirectory,
-                startupCommand: launchCommand,
-                interactive: commandInteractive,
-                keepsShellOpen: !commandClosesOnExit
+                sessionName: remoteSessionName,
+                configuration: RemoteTerminalLaunchConfiguration(
+                    startupCommand: command,
+                    fallbackStartupCommand: launchCommand,
+                    interactive: commandInteractive,
+                    keepsShellOpen: !commandClosesOnExit
+                )
             )) {
                 surfaceCStringPointers.append(remoteWrapped)
                 config.command = UnsafePointer(remoteWrapped)
@@ -243,6 +254,16 @@ final class GhosttyTerminalNSView: NSView {
         surface = nil
         surfaceFocused = nil
         cleanupSurfaceConfigPointers()
+    }
+
+    func restartSession() {
+        processExitHandled = true
+        destroySurface()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.processExitHandled = false
+            self.createSurface()
+        }
     }
 
     private func detachRendererLayer() {

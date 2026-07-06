@@ -46,6 +46,12 @@ flowchart TB
 | [Layout Schema](layouts/schema.md) | Fields, single panes, split trees, JSON form |
 | [Layout Examples](layouts/examples.md) | Ready-to-adapt layout recipes |
 
+## Architecture
+
+| Page | What's in it |
+| --- | --- |
+| [Remote Terminal Persistence](architecture/remote-terminal-persistence.md) | Stable tmux identity, reconnect policy, and cleanup boundaries |
+
 ## Extensions
 
 > **DEV — under active development.** APIs and manifest format may change.

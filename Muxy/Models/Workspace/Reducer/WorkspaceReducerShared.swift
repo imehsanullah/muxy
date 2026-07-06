@@ -50,4 +50,28 @@ enum WorkspaceReducerShared {
         }
         effects.projectIDsToRemove.append(projectID)
     }
+
+    static func appendRemoteSessionCleanups(
+        from tabs: [TerminalTab],
+        key: WorktreeKey,
+        effects: inout WorkspaceSideEffects
+    ) {
+        for tab in tabs {
+            appendRemoteSessionCleanup(from: tab, key: key, effects: &effects)
+        }
+    }
+
+    static func appendRemoteSessionCleanup(
+        from tab: TerminalTab,
+        key: WorktreeKey,
+        effects: inout WorkspaceSideEffects
+    ) {
+        guard let pane = tab.content.pane else { return }
+        let reference = RemoteTerminalSessionReference(
+            worktreeKey: key,
+            sessionID: pane.remoteSessionID
+        )
+        guard !effects.remoteSessionsToKill.contains(reference) else { return }
+        effects.remoteSessionsToKill.append(reference)
+    }
 }

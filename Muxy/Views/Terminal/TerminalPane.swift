@@ -12,6 +12,7 @@ struct TerminalPane: View {
 
     @Bindable private var ownership = PaneOwnershipStore.shared
     @Environment(\.overlayActive) private var overlayActive
+    @Environment(\.paneWorkspaceContext) private var workspaceContext
 
     private var remoteOwnerName: String? {
         if case let .remote(_, name) = ownership.owner(for: state.id) { name } else { nil }
@@ -25,9 +26,36 @@ struct TerminalPane: View {
         )
     }
 
+    private var showsRemoteConnectionOverlay: Bool {
+        remoteOwnerName == nil
+            && workspaceContext.isRemote
+            && state.remoteConnectionState != .connected
+    }
+
     private func wakePane() {
         TerminalViewRegistry.shared.existingView(for: state.id)?.wake()
         onFocus()
+    }
+
+    private func handleProcessExit() {
+        guard workspaceContext.isRemote else {
+            onProcessExit()
+            return
+        }
+        state.markRemoteDisconnected()
+    }
+
+    private func reconnectRemoteSession() {
+        guard workspaceContext.isRemote,
+              let generation = state.beginRemoteReconnect()
+        else { return }
+        guard TerminalViewRegistry.shared.restartSession(for: state.id) else {
+            state.markRemoteDisconnected()
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [state] in
+            state.finishRemoteReconnect(generation: generation)
+        }
     }
 
     var body: some View {
@@ -49,7 +77,7 @@ struct TerminalPane: View {
                 visible: visible,
                 areaID: areaID,
                 onFocus: onFocus,
-                onProcessExit: onProcessExit,
+                onProcessExit: handleProcessExit,
                 onSplitRequest: onSplitRequest
             )
             .accessibilityElement(children: .contain)
@@ -62,6 +90,14 @@ struct TerminalPane: View {
                 RemoteControlledPlaceholder(deviceName: name) {
                     PaneOwnershipStore.shared.releaseToMac(paneID: state.id)
                 }
+                .transition(.opacity)
+            }
+
+            if showsRemoteConnectionOverlay {
+                RemoteConnectionOverlay(
+                    state: state.remoteConnectionState,
+                    onReconnect: reconnectRemoteSession
+                )
                 .transition(.opacity)
             }
 
@@ -92,6 +128,46 @@ struct TerminalPane: View {
                     .transition(.opacity)
             }
         }
+    }
+}
+
+struct RemoteConnectionOverlay: View {
+    let state: TerminalPaneState.RemoteConnectionState
+    let onReconnect: () -> Void
+
+    private var isReconnecting: Bool { state == .reconnecting }
+
+    var body: some View {
+        VStack(spacing: UIMetrics.spacing6) {
+            Spacer()
+            if isReconnecting {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.system(size: UIMetrics.fontMega))
+                    .foregroundStyle(MuxyTheme.fgMuted)
+            }
+            Text(isReconnecting ? "Reconnecting remote session" : "Remote session disconnected")
+                .font(.system(size: UIMetrics.fontHeadline, weight: .semibold))
+                .foregroundStyle(MuxyTheme.fg)
+            Text(isReconnecting
+                ? "Reattaching to the persistent tmux session."
+                : "The tab and remote tmux session are preserved.")
+                .font(.system(size: UIMetrics.fontBody))
+                .foregroundStyle(MuxyTheme.fgMuted)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: UIMetrics.scaled(360))
+            Button {
+                onReconnect()
+            } label: {
+                Label("Reconnect", systemImage: "arrow.clockwise")
+            }
+            .disabled(isReconnecting)
+            .buttonStyle(.borderedProminent)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(MuxyTheme.bg.opacity(0.94))
     }
 }
 
@@ -200,13 +276,17 @@ struct TerminalBridge: NSViewRepresentable {
     func makeNSView(context: Context) -> GhosttyTerminalNSView {
         let registry = TerminalViewRegistry.shared
         let launch = state.consumeRestoredLaunch()
+        let remoteSessionName = worktreeKey.map {
+            RemoteTerminalSessionName.make(worktreeKey: $0, sessionID: state.remoteSessionID)
+        }
         let view = registry.view(
             for: state.id,
             workingDirectory: state.currentWorkingDirectory ?? state.projectPath,
             command: launch.command,
             commandInteractive: launch.interactive,
             closesOnCommandExit: launch.closesOnCommandExit,
-            workspaceContext: workspaceContext
+            workspaceContext: workspaceContext,
+            remoteSessionName: workspaceContext.isRemote ? remoteSessionName : nil
         )
         if view.envVars.isEmpty, let key = worktreeKey {
             view.envVars = TerminalEnvVarBuilder.build(paneID: state.id, worktreeKey: key)

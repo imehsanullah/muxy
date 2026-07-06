@@ -52,13 +52,23 @@ struct TerminalLaunchCommandTests {
         let command = TerminalLaunchCommand.remoteShellCommand(
             destination: SSHDestination(host: "prod"),
             workingDirectory: "~/code/api",
-            startupCommand: nil,
-            interactive: true,
-            keepsShellOpen: false
+            sessionName: "muxy-test",
+            configuration: RemoteTerminalLaunchConfiguration(
+                startupCommand: nil,
+                fallbackStartupCommand: nil,
+                interactive: true,
+                keepsShellOpen: false
+            )
         )
-        #expect(command.hasPrefix("/usr/bin/ssh "))
+        #expect(command.contains("/usr/bin/ssh "))
+        #expect(command.hasPrefix("/bin/sh -c "))
         #expect(command.contains("-tt"))
-        #expect(command.contains("'export TERM=xterm-256color; cd ~/code/api && exec \"${SHELL:-/bin/sh}\" -l -i'"))
+        #expect(command.contains("ConnectTimeout=15"))
+        #expect(command.contains("tmux has-session"))
+        #expect(command.contains("tmux new-session -d -s muxy-test -c ~/code/api"))
+        #expect(command.contains("/bin/sh -lc"))
+        #expect(!command.hasPrefix("exec "))
+        #expect(command.contains("cd ~/code/api"))
     }
 
     @Test("Remote shell escapes an injected startup command so it cannot break out")
@@ -67,9 +77,13 @@ struct TerminalLaunchCommandTests {
         let command = TerminalLaunchCommand.remoteShellCommand(
             destination: SSHDestination(host: "prod"),
             workingDirectory: "~",
-            startupCommand: payload,
-            interactive: false,
-            keepsShellOpen: false
+            sessionName: "muxy-test",
+            configuration: RemoteTerminalLaunchConfiguration(
+                startupCommand: payload,
+                fallbackStartupCommand: payload,
+                interactive: false,
+                keepsShellOpen: false
+            )
         )
         #expect(command.contains("export MUXY_STARTUP_COMMAND="))
         #expect(command.contains("export TERM=xterm-256color"))
@@ -82,10 +96,16 @@ struct TerminalLaunchCommandTests {
         let command = TerminalLaunchCommand.remoteShellCommand(
             destination: SSHDestination(host: "prod", environment: ["TERM": "screen-256color", "LANG": "C.UTF-8"]),
             workingDirectory: "~",
-            startupCommand: nil,
-            interactive: true,
-            keepsShellOpen: false
+            sessionName: "muxy-test",
+            configuration: RemoteTerminalLaunchConfiguration(
+                startupCommand: nil,
+                fallbackStartupCommand: nil,
+                interactive: true,
+                keepsShellOpen: false
+            )
         )
-        #expect(command.contains("'export LANG=C.UTF-8; export TERM=screen-256color; cd ~ && exec \"${SHELL:-/bin/sh}\" -l -i'"))
+        #expect(command.contains("export LANG=C.UTF-8"))
+        #expect(command.contains("export TERM=screen-256color"))
+        #expect(command.contains("export TERM=xterm-256color"))
     }
 }

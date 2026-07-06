@@ -15,13 +15,13 @@ enum ProjectRemovalService {
         )
 
         guard !project.isRemote else {
+            appState.removeProject(project.id)
             if let workspaceID = project.remoteWorkspaceID {
                 projectGroupStore.removeRemoteProject(id: project.id, fromGroup: workspaceID)
             } else {
                 projectStore.remove(id: project.id)
                 projectGroupStore.removeProjectFromAllGroups(projectID: project.id)
             }
-            appState.removeProject(project.id)
             worktreeStore.removeProject(project.id)
             return
         }

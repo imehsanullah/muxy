@@ -98,6 +98,7 @@ final class TerminalTab: Identifiable {
             )
             content = .terminal(TerminalPaneState(
                 id: snapshot.paneID ?? UUID(),
+                remoteSessionID: snapshot.remoteSessionID ?? UUID(),
                 projectPath: snapshot.projectPath,
                 title: snapshot.paneTitle,
                 initialWorkingDirectory: restoredWorkingDirectory
@@ -138,6 +139,7 @@ final class TerminalTab: Identifiable {
             projectPath: content.projectPath,
             paneTitle: extensionTabDefaultTitle ?? content.pane?.title,
             paneID: content.pane?.id,
+            remoteSessionID: content.pane?.remoteSessionID,
             currentWorkingDirectory: content.pane?.currentWorkingDirectory,
             extensionID: content.extensionState?.extensionID,
             extensionTabTypeID: content.extensionState?.tabTypeID,

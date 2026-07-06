@@ -70,8 +70,11 @@ final class AppState {
     private let selectionStore: any ActiveProjectSelectionStoring
     private let terminalViews: any TerminalViewRemoving
     private let workspacePersistence: any WorkspacePersisting
+    private let remoteSessionTerminator: any RemoteTerminalSessionTerminating
     var onProjectsEmptied: (([UUID]) -> Void)?
     var onProjectSelected: ((UUID) -> Void)?
+    var workspaceContextProvider: ((UUID) -> WorkspaceContext)?
+    var remoteSessionRestarter: ((UUID) -> Bool)?
 
     var activeProjectID: UUID?
 
@@ -103,11 +106,13 @@ final class AppState {
     init(
         selectionStore: any ActiveProjectSelectionStoring,
         terminalViews: any TerminalViewRemoving,
-        workspacePersistence: any WorkspacePersisting
+        workspacePersistence: any WorkspacePersisting,
+        remoteSessionTerminator: any RemoteTerminalSessionTerminating = RemoteTerminalSessionTerminator.shared
     ) {
         self.selectionStore = selectionStore
         self.terminalViews = terminalViews
         self.workspacePersistence = workspacePersistence
+        self.remoteSessionTerminator = remoteSessionTerminator
     }
 
     func restoreSelection(
@@ -175,6 +180,28 @@ final class AppState {
     func activeWorktreeKey(for projectID: UUID) -> WorktreeKey? {
         guard let worktreeID = activeWorktreeID[projectID] else { return nil }
         return WorktreeKey(projectID: projectID, worktreeID: worktreeID)
+    }
+
+    func workspaceContext(for projectID: UUID) -> WorkspaceContext {
+        workspaceContextProvider?(projectID) ?? .local
+    }
+
+    func reconnectDisconnectedRemoteSessions() {
+        for (key, root) in workspaceRoots {
+            guard workspaceContext(for: key.projectID).isRemote else { continue }
+            for pane in root.allAreas().flatMap({ $0.tabs.compactMap(\.content.pane) })
+                where pane.remoteConnectionState == .disconnected
+            {
+                guard let generation = pane.beginRemoteReconnect() else { continue }
+                guard remoteSessionRestarter?(pane.id) == true else {
+                    pane.markRemoteDisconnected()
+                    continue
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [pane] in
+                    pane.finishRemoteReconnect(generation: generation)
+                }
+            }
+        }
     }
 
     private func recordActiveWorktreeUsage() {
@@ -687,6 +714,13 @@ final class AppState {
             terminalViews.removeView(for: paneID)
             TerminalProgressStore.shared.resetPane(paneID)
             DetectedAgentStore.shared.resetPane(paneID)
+        }
+
+        for reference in effects.remoteSessionsToKill {
+            guard case let .ssh(destination) = workspaceContext(for: reference.worktreeKey.projectID) else {
+                continue
+            }
+            remoteSessionTerminator.terminate(reference, destination: destination)
         }
 
         if !effects.projectIDsToRemove.isEmpty {

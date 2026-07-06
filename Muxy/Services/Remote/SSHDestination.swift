@@ -72,6 +72,14 @@ struct SSHDestination: Hashable, Codable {
         "-o", "ServerAliveCountMax=3",
     ]
 
+    private static let persistentTerminalKeepAliveOptions: [String] = [
+        "-o", "ConnectTimeout=15",
+        "-o", "ConnectionAttempts=1",
+        "-o", "ServerAliveInterval=15",
+        "-o", "ServerAliveCountMax=3",
+        "-o", "TCPKeepAlive=yes",
+    ]
+
     private static let nonInteractiveOptions: [String] = [
         "-o", "BatchMode=yes",
         "-o", "StrictHostKeyChecking=accept-new",
@@ -92,4 +100,8 @@ struct SSHDestination: Hashable, Codable {
     static let connectOptions: [String] = nonInteractiveOptions + multiplexOptions + keepAliveOptions
 
     static let terminalOptions: [String] = ["-o", "ControlMaster=no"] + interactiveOptions + keepAliveOptions
+
+    static let persistentTerminalOptions: [String] = ["-o", "ControlMaster=no"]
+        + interactiveOptions
+        + persistentTerminalKeepAliveOptions
 }

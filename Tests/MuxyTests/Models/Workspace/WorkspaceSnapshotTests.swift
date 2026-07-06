@@ -33,6 +33,7 @@ struct WorkspaceSnapshotTests {
 
     @Test("TerminalTabSnapshot round-trip preserves currentWorkingDirectory")
     func terminalTabSnapshotPreservesWorkingDirectory() throws {
+        let remoteSessionID = UUID()
         let snapshot = TerminalTabSnapshot(
             kind: .terminal,
             customTitle: nil,
@@ -40,12 +41,14 @@ struct WorkspaceSnapshotTests {
             isPinned: false,
             projectPath: testPath,
             paneTitle: "Shell",
+            remoteSessionID: remoteSessionID,
             currentWorkingDirectory: "/tmp/test/src"
         )
         let data = try JSONEncoder().encode(snapshot)
         let decoded = try JSONDecoder().decode(TerminalTabSnapshot.self, from: data)
 
         #expect(decoded.currentWorkingDirectory == "/tmp/test/src")
+        #expect(decoded.remoteSessionID == remoteSessionID)
         #expect(decoded.projectPath == testPath)
     }
 
@@ -62,7 +65,46 @@ struct WorkspaceSnapshotTests {
         let decoded = try JSONDecoder().decode(TerminalTabSnapshot.self, from: json)
 
         #expect(decoded.currentWorkingDirectory == nil)
+        #expect(decoded.remoteSessionID == nil)
         #expect(decoded.projectPath == testPath)
+    }
+
+    @Test("Restored terminal preserves a persisted remote session identity")
+    func terminalRestorePreservesRemoteSessionIdentity() {
+        let remoteSessionID = UUID()
+        let snapshot = TerminalTabSnapshot(
+            kind: .terminal,
+            customTitle: nil,
+            colorID: nil,
+            isPinned: false,
+            projectPath: testPath,
+            paneTitle: "Shell",
+            remoteSessionID: remoteSessionID
+        )
+
+        let restored = TerminalTab(restoring: snapshot)
+
+        #expect(restored.content.pane?.remoteSessionID == remoteSessionID)
+        #expect(restored.snapshot().remoteSessionID == remoteSessionID)
+    }
+
+    @Test("Legacy terminal snapshots receive a new stable remote session identity")
+    func legacyTerminalRestoreCreatesRemoteSessionIdentity() throws {
+        let json = """
+        {
+            "kind": "terminal",
+            "isPinned": false,
+            "projectPath": "\(testPath)",
+            "paneTitle": "Shell"
+        }
+        """
+        let snapshot = try JSONDecoder().decode(TerminalTabSnapshot.self, from: Data(json.utf8))
+        let restored = TerminalTab(restoring: snapshot)
+        let generated = restored.content.pane?.remoteSessionID
+
+        #expect(snapshot.remoteSessionID == nil)
+        #expect(generated != nil)
+        #expect(restored.snapshot().remoteSessionID == generated)
     }
 
     @Test("TerminalTabSnapshot decoding with removed editor kind falls back to terminal")
