@@ -136,10 +136,8 @@ Code signature verification passed for the installed app bundle.
 When a remote terminal uses tmux, the bottom tmux status line is configured with:
 
 - `status-left`: `muxy-<last4>`
-- `status-right`: empty
-- status, window, message, and mode styles: dim foreground with `bg=default`
 - `history-limit`: `1000000`
 - `mouse`: `on`
 - `allow-passthrough`: `on` when supported
 
-`<last4>` is derived from the sanitized session name suffix. tmux does not support true alpha transparency in the status line, so Muxy uses `bg=default` to inherit the terminal background and clears the default right-side status content to keep the bar visually quiet.
+`<last4>` is derived from the sanitized session name suffix. Other default tmux status content may still appear unless the user's tmux configuration changes it.
