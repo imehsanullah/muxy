@@ -85,6 +85,7 @@ enum RemoteTerminalSessionCommand {
         let name = RemoteTerminalSessionName.sanitized(sessionName)
         let session = ShellEscaper.escape(name)
         let target = ShellEscaper.escape("=\(name)")
+        let optionTarget = ShellEscaper.escape("=\(name):")
         let path = RemoteCommandBuilder.quoteRemotePath(workingDirectory)
         let command = ShellEscaper.escape(creationCommand)
         let label = ShellEscaper.escape("muxy-\(name.suffix(4)) ")
@@ -99,13 +100,13 @@ enum RemoteTerminalSessionCommand {
             + fallbackCommand
         let tmuxCommands = [
             "if ! tmux has-session -t \(target) 2>/dev/null; then tmux new-session -d -s \(session) -c \(path) \(command); fi",
-            "tmux set-option -t \(target) mouse on",
-            "tmux set-option -t \(target) history-limit 1000000",
-            "tmux set-option -t \(target) status-style \(dimStyle)",
-            "tmux set-option -t \(target) status-left \(label)",
-            "tmux set-window-option -t \(target) allow-passthrough on 2>/dev/null || true",
-            "tmux set-window-option -t \(target) window-status-style \(dimStyle)",
-            "tmux set-window-option -t \(target) window-status-current-style \(activeStyle)",
+            "tmux set-option -t \(optionTarget) mouse on",
+            "tmux set-option -t \(optionTarget) history-limit 1000000",
+            "tmux set-option -t \(optionTarget) status-style \(dimStyle)",
+            "tmux set-option -t \(optionTarget) status-left \(label)",
+            "tmux set-window-option -t \(optionTarget) allow-passthrough on 2>/dev/null || true",
+            "tmux set-window-option -t \(optionTarget) window-status-style \(dimStyle)",
+            "tmux set-window-option -t \(optionTarget) window-status-current-style \(activeStyle)",
             "exec tmux attach-session -t \(target)",
         ].joined(separator: "; ")
         return persistentEnvironment

@@ -31,6 +31,7 @@ The goal of this branch is to keep remote terminal processes and scrollback aliv
 - The wrapper starts OpenSSH with interactive-terminal options, keepalives, and `ControlMaster=no`.
 - On the SSH host, Muxy checks for `tmux`.
 - If `tmux` exists, Muxy creates the named session only when it is absent, applies terminal options, and attaches to it.
+- Terminal options are applied with a tmux target of `=<session-name>:`. On tmux 3.4, `tmux has-session -t =<session-name>` resolves the exact session, but `tmux set-option -t =<session-name>` can fail to resolve session-level options. Adding the trailing `:` keeps the exact session match while giving `set-option` and `set-window-option` a target they can apply.
 - If `tmux` is missing, Muxy falls back to a direct SSH login shell. In that fallback mode, layout restoration still works, but the remote process cannot survive a broken SSH connection.
 
 ### Shell Command Fix
@@ -126,8 +127,8 @@ The dev app was rebuilt and launched from this worktree:
 Build metadata:
 
 - Version: `1.3.0`
-- Build: `814`
-- Source commit: `14faa4c`
+- Build number: generated from the local commit count
+- Source: current `dev_2026-07-06` checkout
 
 Code signature verification passed for the installed app bundle.
 
@@ -136,8 +137,29 @@ Code signature verification passed for the installed app bundle.
 When a remote terminal uses tmux, the bottom tmux status line is configured with:
 
 - `status-left`: `muxy-<last4>`
+- `status-style`: `fg=colour238,bg=default`
+- `window-status-style`: `fg=colour238,bg=default`
+- `window-status-current-style`: `fg=colour240,bg=default`
 - `history-limit`: `1000000`
 - `mouse`: `on`
 - `allow-passthrough`: `on` when supported
 
-`<last4>` is derived from the sanitized session name suffix. Other default tmux status content may still appear unless the user's tmux configuration changes it.
+`<last4>` is derived from the sanitized session name suffix. `bg=default` intentionally avoids forcing a solid tmux background; it lets the terminal background show through while dimming the tmux status text. Muxy does not depend on a remote `~/.tmux.conf` for this. If the remote host has no tmux config, these options override tmux's built-in green status bar default for Muxy sessions.
+
+The session existence check and attach command still use `=<session-name>`:
+
+```sh
+tmux has-session -t "=<session-name>"
+exec tmux attach-session -t "=<session-name>"
+```
+
+The option commands use the session-and-window target form:
+
+```sh
+tmux set-option -t "=<session-name>:" status-style fg=colour238,bg=default
+tmux set-option -t "=<session-name>:" status-left "muxy-<last4> "
+tmux set-window-option -t "=<session-name>:" window-status-style fg=colour238,bg=default
+tmux set-window-option -t "=<session-name>:" window-status-current-style fg=colour240,bg=default
+```
+
+This target split was verified against the `moncheri` SSH host, where tmux 3.4 had no user config files and otherwise inherited the built-in `status-style bg=green,fg=black` default.

@@ -64,6 +64,7 @@ struct RemoteTerminalSessionCommandTests {
         #expect(command.contains("export TERM=xterm-256color"))
         #expect(command.contains("if ! tmux has-session -t '=muxy-test'"))
         #expect(command.contains("tmux new-session -d -s muxy-test"))
+        #expect(command.contains("tmux set-option -t '=muxy-test:' status-style fg=colour238,bg=default"))
         #expect(command.contains("/bin/sh -lc"))
         #expect(command.contains("history-limit 1000000"))
         #expect(command.contains("mouse on"))
